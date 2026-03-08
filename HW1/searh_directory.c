@@ -72,8 +72,8 @@ int compare(struct stat *st, t_file *criteria, const char *file_name){
     if (criteria->permissions != NULL)
     {
         char perm[10];
-        
-        mode_to_permission_string(*st, perm);
+
+        mode_to_permission_string(*st, perm);TRL-C handling
 
         if (strcmp(criteria->permissions, perm) != 0)
             return 0;

@@ -4,16 +4,12 @@
 #include "./includes/functions.h"
 
 void init_program(t_program *program) {
-    // int değerleri -1 ile başlatıyoruz (0 geçerli bir değer olabileceği için)
     program->criteria.link_count = -1;
     program->criteria.file_size = -1;
-    
-    // char pointer'ları NULL ile başlatıyoruz
     program->criteria.target_dir = NULL;
     program->criteria.filename = NULL;
     program->criteria.file_type = NULL;
     program->criteria.permissions = NULL;
-
     program->found_count = 0;
 }
 

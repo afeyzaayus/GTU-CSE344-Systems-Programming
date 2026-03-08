@@ -15,5 +15,13 @@ typedef struct s_program {
     int found_count;
 } t_program;
 
+typedef enum e_error {
+    ERR_NO_VALUE,
+    ERR_INVALID_PARAM,
+    ERR_BAD_FORMAT,
+    ERR_NO_TARGET_DIR,
+    ERR_NO_CRITERIA
+} t_error;
+
 
 #endif
