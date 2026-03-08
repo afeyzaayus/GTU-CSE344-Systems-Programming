@@ -10,5 +10,10 @@ typedef struct s_file {
     char *permissions;
 } t_file;
 
+typedef struct s_program {
+    t_file criteria;
+    int found_count;
+} t_program;
+
 
 #endif
