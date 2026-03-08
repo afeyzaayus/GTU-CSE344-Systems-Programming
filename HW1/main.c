@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
         return 1;
 
     if (!program.found_count){
-        write(STDERR_FILENO, "No file found.\n", 15);
+        write(STDERR_FILENO, "No file found.\n", 15); // print error kullanabilirsin bi düşün
         return 1;
     }
 

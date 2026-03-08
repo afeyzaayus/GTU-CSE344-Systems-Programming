@@ -73,11 +73,16 @@ int compare(struct stat *st, t_file *criteria, const char *file_name){
     {
         char perm[10];
 
-        mode_to_permission_string(*st, perm);TRL-C handling
+        mode_to_permission_string(*st, perm);
 
         if (strcmp(criteria->permissions, perm) != 0)
             return 0;
-        
+    }
+
+    if (criteria->filename != NULL)
+    {
+        if (!regex_match(criteria->filename, file_name))
+            return 0;
     }
     
     return 1;
@@ -104,8 +109,7 @@ void search_directory(const char *curr_path, t_program *program, int depth) {
     struct dirent *entry;
     struct stat st;
 
-    if (!(dir = opendir(curr_path)))
-    {
+    if (!(dir = opendir(curr_path))) {
         write(STDERR_FILENO, "Directory couldn't be opened.\n", 30);
         return ;
     }
