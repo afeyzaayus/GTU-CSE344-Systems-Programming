@@ -2,118 +2,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-//#include <./includes/struct.h>
 #include "./includes/functions.h"
 #include <sys/stat.h>
 #include <limits.h>
 
-// Verilen dizini aç 
-// → içindeki her entry'yi incele 
-// → kriterleri kontrol et 
-// → gerekiyorsa yazdır 
-// → eğer dizinse recursive devam et.
-
-
-void mode_to_permission_string(struct stat st, char *perm){
-    perm[0] = (st.st_mode & S_IRUSR) ? 'r' : '-';
-    perm[1] = (st.st_mode & S_IWUSR) ? 'w' : '-';
-    perm[2] = (st.st_mode & S_IXUSR) ? 'x' : '-';
-
-    perm[3] = (st.st_mode & S_IRGRP) ? 'r' : '-';
-    perm[4] = (st.st_mode & S_IWGRP) ? 'w' : '-';
-    perm[5] = (st.st_mode & S_IXGRP) ? 'x' : '-';
-
-    perm[6] = (st.st_mode & S_IROTH) ? 'r' : '-';
-    perm[7] = (st.st_mode & S_IWOTH) ? 'w' : '-';
-    perm[8] = (st.st_mode & S_IXOTH) ? 'x' : '-';
-    perm[9] = '\0';
-}
-
-
-// ilerde düzelecek
-int compare(struct stat *st, t_program *program, const char *file_name){
-    t_file criteria = program->criteria;
-    if (criteria.filename != NULL)
-    {
-        if (!regex_match(program, file_name))
-            return 0;
-    }
-
-    if (criteria.file_size != -1)
-    {
-        if (st->st_size != criteria.file_size)
-            return 0;
-    }
-
-    if (criteria.link_count != -1)
-    {
-        if ((int)st->st_nlink != criteria.link_count)
-            return 0;
-    }
-
-    if (criteria.file_type != NULL)
-    {
-        char type = criteria.file_type[0];
-
-        if (type == 'd' && !S_ISDIR(st->st_mode))
-            return 0;
-        if (type == 'f' && !S_ISREG(st->st_mode))
-            return 0;
-        if (type == 'l' && !S_ISLNK(st->st_mode))
-            return 0;
-        if (type == 'b' && !S_ISBLK(st->st_mode))
-            return 0;
-        if (type == 'c' && !S_ISCHR(st->st_mode))
-            return 0;
-        if (type == 'p' && !S_ISFIFO(st->st_mode))
-            return 0;
-        if (type == 's' && !S_ISSOCK(st->st_mode))
-            return 0;
-    }
-
-    if (criteria.permissions != NULL)
-    {
-        char perm[10];
-
-        mode_to_permission_string(*st, perm);
-
-        if (strcmp(criteria.permissions, perm) != 0)
-            return 0;
-    }
-    
-    return 1;
-}
-
-void print_tree(const char *name, int depth)
-{
-    int dash_count;
-
-    write(1, "|", 1);
-
-    dash_count = 2 + (depth - 1) * 4;
-
-    for (int i = 0; i < dash_count; i++)
-        write(1, "-", 1);
-
-    write(1, name, strlen(name));
-    write(1, "\n", 1);
-}
-
-struct path_info {
-    const char *name;
-    int depth;
-    int printed;
-    struct path_info *parent;
-};
-
-void print_path(struct path_info *p) {
-    if (!p || p->printed) return;
-    print_path(p->parent);
-    print_tree(p->name, p->depth);
-    p->printed = 1;
-}
-
-void search_directory_internal(const char *curr_path, t_program *program, int depth, struct path_info *parent_info) {
+void search_directory_internal(const char *curr_path, t_program *program, int depth, t_path_info *parent_info) {
     DIR *dir;
     struct dirent *entry;
     struct stat st;
@@ -154,7 +47,7 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
         }
 
         if (S_ISDIR(st.st_mode)) { // içinde başka klasörler varsa diye
-            struct path_info current_info;
+            t_path_info current_info;
             current_info.name = entry->d_name;
             current_info.depth = depth + 1;
             current_info.printed = matched ? 1 : 0;

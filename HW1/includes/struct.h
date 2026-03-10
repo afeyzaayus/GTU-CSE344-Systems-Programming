@@ -23,5 +23,11 @@ typedef enum e_error {
     ERR_NO_CRITERIA
 } t_error;
 
+typedef struct path_info {
+    const char *name;
+    int depth;
+    int printed;
+    struct path_info *parent;
+} t_path_info;
 
 #endif
