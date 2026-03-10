@@ -2,7 +2,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include <./includes/struct.h>
+//#include <./includes/struct.h>
+#include "./includes/functions.h"
 #include <sys/stat.h>
 #include <limits.h>
 
@@ -30,28 +31,29 @@ void mode_to_permission_string(struct stat st, char *perm){
 
 
 // ilerde düzelecek
-int compare(struct stat *st, t_file *criteria, const char *file_name){
-    if (criteria->filename != NULL)
+int compare(struct stat *st, t_program *program, const char *file_name){
+    t_file criteria = program->criteria;
+    if (criteria.filename != NULL)
     {
-        if (strcmp(criteria->filename, file_name) != 0)
+        if (!regex_match(program, file_name))
             return 0;
     }
 
-    if (criteria->file_size != -1)
+    if (criteria.file_size != -1)
     {
-        if (st->st_size != criteria->file_size)
+        if (st->st_size != criteria.file_size)
             return 0;
     }
 
-    if (criteria->link_count != -1)
+    if (criteria.link_count != -1)
     {
-        if (st->st_nlink != criteria->link_count)
+        if ((int)st->st_nlink != criteria.link_count)
             return 0;
     }
 
-    if (criteria->file_type != NULL)
+    if (criteria.file_type != NULL)
     {
-        char type = criteria->file_type[0];
+        char type = criteria.file_type[0];
 
         if (type == 'd' && !S_ISDIR(st->st_mode))
             return 0;
@@ -69,19 +71,13 @@ int compare(struct stat *st, t_file *criteria, const char *file_name){
             return 0;
     }
 
-    if (criteria->permissions != NULL)
+    if (criteria.permissions != NULL)
     {
         char perm[10];
 
         mode_to_permission_string(*st, perm);
 
-        if (strcmp(criteria->permissions, perm) != 0)
-            return 0;
-    }
-
-    if (criteria->filename != NULL)
-    {
-        if (!regex_match(criteria->filename, file_name))
+        if (strcmp(criteria.permissions, perm) != 0)
             return 0;
     }
     
@@ -103,8 +99,21 @@ void print_tree(const char *name, int depth)
     write(1, "\n", 1);
 }
 
+struct path_info {
+    const char *name;
+    int depth;
+    int printed;
+    struct path_info *parent;
+};
 
-void search_directory(const char *curr_path, t_program *program, int depth) {
+void print_path(struct path_info *p) {
+    if (!p || p->printed) return;
+    print_path(p->parent);
+    print_tree(p->name, p->depth);
+    p->printed = 1;
+}
+
+void search_directory_internal(const char *curr_path, t_program *program, int depth, struct path_info *parent_info) {
     DIR *dir;
     struct dirent *entry;
     struct stat st;
@@ -114,10 +123,13 @@ void search_directory(const char *curr_path, t_program *program, int depth) {
         return ;
     }
 
-    char full_path[1024]; // realloc?
+    char full_path[1024];
 
-    while ((entry == readdir(dir)))
+    while (1)
     {
+        entry = readdir(dir);
+        if (!entry)
+            break;
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
 
@@ -130,16 +142,31 @@ void search_directory(const char *curr_path, t_program *program, int depth) {
             continue;
         }
 
-        if (compare(&st, &program->criteria, entry->d_name)) {
+        int matched = compare(&st, program, entry->d_name);
+        
+        if (matched) {
             program->found_count++;
+            print_path(parent_info);
+
+            // If it's a directory but it ALSO matched our criteria, it might be printed now.
+            // We'll set a local printed flag to true so we don't print it twice if we go inside.
             print_tree(entry->d_name, depth + 1);
         }
 
-        if (S_ISDIR(st.st_mode)) // içinde başka klasörler varsa diye
-            search_directory(full_path, program, depth + 1);
+        if (S_ISDIR(st.st_mode)) { // içinde başka klasörler varsa diye
+            struct path_info current_info;
+            current_info.name = entry->d_name;
+            current_info.depth = depth + 1;
+            current_info.printed = matched ? 1 : 0;
+            current_info.parent = parent_info;
 
+            search_directory_internal(full_path, program, depth + 1, &current_info);
+        }
     }
 
     closedir(dir);
-    
+}
+
+void search_directory(const char *curr_path, t_program *program, int depth) {
+    search_directory_internal(curr_path, program, depth, NULL);
 }

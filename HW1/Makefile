@@ -4,7 +4,9 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Werror
 
 SRC = 	main.c \
-		arguments.c
+		arguments.c \
+		regex.c \
+		searh_directory.c
 
 OBJ = $(SRC:.c=.o)
 
