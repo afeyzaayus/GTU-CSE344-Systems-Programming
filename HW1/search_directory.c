@@ -43,7 +43,7 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
 
             // If it's a directory but it ALSO matched our criteria, it might be printed now.
             // We'll set a local printed flag to true so we don't print it twice if we go inside.
-            print_tree(entry->d_name, depth + 1);
+            print_tree(entry->d_name, depth + 1, S_ISDIR(st.st_mode));
         }
 
         if (S_ISDIR(st.st_mode)) { // içinde başka klasörler varsa diye
