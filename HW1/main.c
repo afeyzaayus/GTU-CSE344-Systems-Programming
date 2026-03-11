@@ -22,19 +22,17 @@ int main(int argc, char **argv) {
         return 1;
 
     /* root directory yazdır */
-    write(1, program.criteria.target_dir,
+    write(STDOUT_FILENO, program.criteria.target_dir,
           strlen(program.criteria.target_dir));
-    write(1, "\n", 1);
+    write(STDOUT_FILENO, "\n", 1);
 
     /* recursive search başlat */
     search_directory(program.criteria.target_dir, &program, 0);
-
 
     if (!program.found_count){
         write(STDERR_FILENO, "No file found.\n", 15); // print error kullanabilirsin bi düşün
         return 1;
     }
-
-
+    
     return 0;
 }

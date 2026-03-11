@@ -20,8 +20,8 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
 
     while (1)
     {
-        entry = readdir(dir);
-        if (!entry)
+        entry = readdir(dir); // açılmış kalöredeki dosyaları tek tek oku
+        if (!entry) // klaörün sonu demek
             break;
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;

@@ -6,8 +6,6 @@
 #include <sys/stat.h>
 #include <limits.h>
 
-
-
 void mode_to_permission_string(struct stat st, char *perm){
     perm[0] = (st.st_mode & S_IRUSR) ? 'r' : '-';
     perm[1] = (st.st_mode & S_IWUSR) ? 'w' : '-';
