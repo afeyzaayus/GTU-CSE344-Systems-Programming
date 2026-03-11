@@ -4,9 +4,9 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Werror
 
 SRC = 	main.c \
-		arguments.c \
+		parse_arguments.c \
 		regex.c \
-		searh_directory.c \
+		search_directory.c \
 		compare.c \
 		print_tree.c
 
