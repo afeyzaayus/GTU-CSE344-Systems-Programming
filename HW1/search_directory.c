@@ -11,8 +11,12 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
     struct dirent *entry;
     struct stat st;
 
+    if (g_stop_requested)
+        return;
+
     if (!(dir = opendir(curr_path))) {
-        write(STDERR_FILENO, "Directory couldn't be opened.\n", 30);
+        if (!g_stop_requested)
+            write(STDERR_FILENO, "Directory couldn't be opened.\n", 30);
         return ;
     }
 
@@ -20,6 +24,9 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
 
     while (1)
     {
+        if (g_stop_requested)
+            break;
+
         entry = readdir(dir); // açılmış kalöredeki dosyaları tek tek oku
         if (!entry) // klaörün sonu demek
             break;
@@ -31,9 +38,13 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
         strcat(full_path, entry->d_name);
 
         if (lstat(full_path, &st) == -1){
-            write(STDERR_FILENO, "lstat failed\n", 13);
+            if (!g_stop_requested)
+                write(STDERR_FILENO, "lstat failed\n", 13);
             continue;
         }
+
+        if (g_stop_requested)
+            break;
 
         int matched = compare(&st, program, entry->d_name);
         
@@ -54,7 +65,11 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
             current_info.parent = parent_info;
 
             search_directory_internal(full_path, program, depth + 1, &current_info);
+
+            if (g_stop_requested)
+                break;
         }
+        usleep(50000);
     }
 
     closedir(dir);

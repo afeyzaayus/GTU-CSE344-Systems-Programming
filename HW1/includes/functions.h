@@ -2,8 +2,10 @@
 # define FUNCTIONS_H
 
 #include "struct.h"
+#include <signal.h>
 #include <sys/stat.h>
 
+extern volatile sig_atomic_t g_stop_requested;
 
 int parse_arguments(int argc, char **argv, t_file *criteria);
 int regex_match(t_program *program, const char *filename);
