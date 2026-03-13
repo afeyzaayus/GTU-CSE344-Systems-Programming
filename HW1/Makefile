@@ -1,11 +1,9 @@
 NAME        = myFind
 
-# Derleyici ve Bayraklar
 CC          = gcc
 CFLAGS      = -Wall
 MAKEFLAGS   += --no-print-directory
 
-# Dosya Yolları
 SRC         = ./src/main.c \
               ./src/parse_arguments.c \
               ./src/regex.c \
@@ -16,7 +14,6 @@ SRC         = ./src/main.c \
 
 OBJ         = $(SRC:.c=.o)
 
-# Renkler ve Karakterler
 GREEN       = \033[0;32m
 CYAN        = \033[0;36m
 YELLOW      = \033[1;33m
@@ -25,7 +22,6 @@ CLEAR_LINE  = \033[K
 WINKY       = 😊
 FILE_ICON   = 📄
 
-# Kurallar
 all: $(NAME)
 
 $(NAME): $(OBJ)
