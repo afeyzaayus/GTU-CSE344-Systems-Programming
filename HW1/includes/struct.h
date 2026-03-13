@@ -20,7 +20,8 @@ typedef enum e_error {
     ERR_INVALID_PARAM,
     ERR_BAD_FORMAT,
     ERR_NO_TARGET_DIR,
-    ERR_NO_CRITERIA
+    ERR_NO_CRITERIA,
+    ERR_MUST_INT
 } t_error;
 
 typedef struct path_info {

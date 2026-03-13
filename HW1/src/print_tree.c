@@ -1,4 +1,4 @@
-#include "./includes/struct.h"
+#include "../includes/struct.h"
 #include <unistd.h>
 #include <string.h>
 
@@ -6,24 +6,23 @@ void print_tree(const char *name, int depth, int is_dir)
 {
     int dash_count;
 
-    write(1, "\033[1;33m", 7); // Sarı renk (branch)
+    write(1, "\033[1;33m", 7);
     write(1, "|", 1);
-    write(1, "\033[0m", 5); // Rengi sıfırla
 
     dash_count = 2 + (depth - 1) * 4;
 
     for (int i = 0; i < dash_count; i++)
         write(1, "-", 1);
 
-    write(1, "\033[0m", 5); // Rengi sıfırla
+    write(1, "\033[0m", 5);
 
     if (is_dir)
-        write(1, "\033[0;32m", 7); // Yeşil renk (directory)
+        write(1, "\033[32m", 5);
     else
-        write(1, "\033[37m", 5); // Beyaz renk (dosya)
+        write(1, "\033[37m", 5); 
 
     write(1, name, strlen(name));
-    write(1, "\033[0m\n", 5); // Rengi sıfırla ve yeni satır
+    write(1, "\033[0m\n", 5); 
 }
 
 

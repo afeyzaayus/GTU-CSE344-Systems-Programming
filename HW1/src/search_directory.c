@@ -1,10 +1,8 @@
 #include <dirent.h>
 #include <unistd.h>
-#include <errno.h>
 #include <string.h>
-#include "./includes/functions.h"
+#include "../includes/functions.h"
 #include <sys/stat.h>
-#include <limits.h>
 
 void search_directory_internal(const char *curr_path, t_program *program, int depth, t_path_info *parent_info) {
     DIR *dir;
@@ -27,8 +25,8 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
         if (g_stop_requested)
             break;
 
-        entry = readdir(dir); // açılmış kalöredeki dosyaları tek tek oku
-        if (!entry) // klaörün sonu demek
+        entry = readdir(dir);
+        if (!entry)
             break;
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
@@ -51,13 +49,10 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
         if (matched) {
             program->found_count++;
             print_path(parent_info);
-
-            // If it's a directory but it ALSO matched our criteria, it might be printed now.
-            // We'll set a local printed flag to true so we don't print it twice if we go inside.
             print_tree(entry->d_name, depth + 1, S_ISDIR(st.st_mode));
         }
 
-        if (S_ISDIR(st.st_mode)) { // içinde başka klasörler varsa diye
+        if (S_ISDIR(st.st_mode)) {
             t_path_info current_info;
             current_info.name = entry->d_name;
             current_info.depth = depth + 1;
@@ -69,7 +64,7 @@ void search_directory_internal(const char *curr_path, t_program *program, int de
             if (g_stop_requested)
                 break;
         }
-        usleep(50000);
+        usleep(5000);
     }
 
     closedir(dir);

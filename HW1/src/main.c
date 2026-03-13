@@ -1,30 +1,9 @@
 #include <unistd.h>
-#include <stdbool.h>
 #include <string.h>
 #include <signal.h>
-#include <stdlib.h>
-#include "./includes/functions.h"
+#include "../includes/functions.h"
 
 volatile sig_atomic_t g_stop_requested = 0;
-
-static void handle_sigint(int sig) {
-    (void)sig;
-    g_stop_requested = 1;
-}
-
-static int setup_signal_handlers(void) {
-    struct sigaction sa;
-
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = handle_sigint;
-    sigemptyset(&sa.sa_mask);
-
-    if (sigaction(SIGINT, &sa, NULL) == -1) {
-        write(STDERR_FILENO, "Failed to register SIGINT handler.\n", 34);
-        return 0;
-    }
-    return 1;
-}
 
 void init_program(t_program *program) {
     program->criteria.link_count = -1;
@@ -36,16 +15,8 @@ void init_program(t_program *program) {
     program->found_count = 0;
 }
 
-void check_signal(){
-    if (g_stop_requested) {
-        const char *msg = "Interrupted by CTRL-C. Resources released, exiting.\n";
-        write(STDERR_FILENO, msg, 52);
-        exit(130);
-    }
-}
-
 void print_target_dir(const char *target_dir) {
-    write(STDOUT_FILENO, "\033[31m", 5);
+    write(STDOUT_FILENO, "\033[35m", 5);
     write(STDOUT_FILENO, target_dir, strlen(target_dir));
     write(STDOUT_FILENO, "\033[0m\n", 5);
 }

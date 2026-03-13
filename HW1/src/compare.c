@@ -1,10 +1,6 @@
-#include <dirent.h>
 #include <unistd.h>
-#include <errno.h>
 #include <string.h>
-#include "./includes/functions.h"
-#include <sys/stat.h>
-#include <limits.h>
+#include "../includes/functions.h"
 
 void mode_to_permission_string(struct stat st, char *perm){
     perm[0] = (st.st_mode & S_IRUSR) ? 'r' : '-';
@@ -42,7 +38,7 @@ int is_correct_type(char type, struct stat *st){
 int compare(struct stat *st, t_program *program, const char *file_name){
     t_file criteria = program->criteria;
     if (criteria.filename != NULL){
-        if (!regex_match(program, file_name))
+        if (!regex_match(&criteria, file_name))
             return 0;
     }
 

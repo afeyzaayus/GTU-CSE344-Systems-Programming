@@ -2,16 +2,17 @@ NAME        = myFind
 
 # Derleyici ve Bayraklar
 CC          = gcc
-CFLAGS      = -Wall -Wextra -Werror
+CFLAGS      = -Wall
 MAKEFLAGS   += --no-print-directory
 
 # Dosya Yolları
-SRC         = main.c \
-              parse_arguments.c \
-              regex.c \
-              search_directory.c \
-              compare.c \
-              print_tree.c
+SRC         = ./src/main.c \
+              ./src/parse_arguments.c \
+              ./src/regex.c \
+              ./src/search_directory.c \
+              ./src/compare.c \
+              ./src/print_tree.c \
+			  ./src/signal.c
 
 OBJ         = $(SRC:.c=.o)
 
