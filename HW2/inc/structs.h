@@ -27,7 +27,11 @@ typedef struct s_args {
     int num_workers; // -r
     char *pattern; // -f
     int min_size; // optional -s
-    int size_flag; // size verildi mi anlamak için
+
+    int d_flag;
+    int n_flag;
+    int f_flag;
+    int s_flag; // size verildi mi anlamak için
 } t_args ;
 
 
