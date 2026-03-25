@@ -1,12 +1,10 @@
 #include "../inc/functions.h"
 #include <ctype.h>
 
-int regex(t_args *args, const char *filename)
+static int match(const char *pattern, const char *filename)
 {
-    char *pattern = args->pattern;
-
     if (*pattern == '\0')
-        return *filename == '\0';
+        return 1;  // ← BURADAKİ DEĞİŞİKLİK: '\0' kontrolü kaldırıldı
 
     char c = tolower((unsigned char)*pattern);
 
@@ -19,12 +17,8 @@ int regex(t_args *args, const char *filename)
 
         while (filename[i] && tolower((unsigned char)filename[i]) == c)
         {
-            t_args temp = *args;
-            temp.pattern = pattern + 2;
-
-            if (regex(&temp, filename + i + 1))
+            if (match(pattern + 2, filename + i + 1))
                 return 1;
-
             i++;
         }
         return 0;
@@ -32,11 +26,21 @@ int regex(t_args *args, const char *filename)
     else
     {
         if (*filename && tolower((unsigned char)*filename) == c)
-        {
-            t_args temp = *args;
-            temp.pattern = pattern + 1;
-            return regex(&temp, filename + 1);
-        }
+            return match(pattern + 1, filename + 1);
         return 0;
     }
+}
+
+// Tüm başlangıç pozisyonlarını dene (substring match)
+int regex(t_args *args, const char *filename)
+{
+    const char *pattern = args->pattern;
+
+    for (; *filename != '\0'; filename++)
+    {
+        if (match(pattern, filename))
+            return 1;
+    }
+    // Boş pattern de kontrol et
+    return match(pattern, filename);
 }

@@ -31,7 +31,7 @@ typedef struct s_args {
     int d_flag;
     int n_flag;
     int f_flag;
-    int s_flag; // size verildi mi anlamak için
+    int s_flag;
 } t_args ;
 
 

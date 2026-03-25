@@ -31,6 +31,11 @@ void parse_arguments(int argc, char **argv, t_args *args)
                 args->s_flag = 1;
                 break;
 
+            case ':':
+                write(STDERR_FILENO, RED, sizeof(RED) - 1);
+                write(STDERR_FILENO, "ERROR! : option requires an argument\n", 38);
+                write(STDERR_FILENO, RESET, sizeof(RESET) - 1);
+                exit(EXIT_FAILURE); 
             default:
                 write(STDERR_FILENO, RED, sizeof(RED) - 1);
                 write(STDERR_FILENO, "ERROR! : Invalid flag!\n", 23);

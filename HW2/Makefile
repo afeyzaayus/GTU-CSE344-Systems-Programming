@@ -6,8 +6,9 @@ MAKEFLAGS   += --no-print-directory
 
 SRC         = ./src/main.c \
               ./src/parse_arguments.c \
-              ./src/regex.c
-#               ./src/search_directory.c \
+              ./src/regex.c \
+			  ./src/search_directory.c \
+			  ./src/root_subdirs.c
 #               ./src/compare.c \
 #               ./src/print_tree.c \
 # 			  ./src/signal.c
