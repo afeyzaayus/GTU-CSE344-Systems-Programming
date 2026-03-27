@@ -1,4 +1,4 @@
-#ifndef FUNCTIONS_H
+﻿#ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
 #include "structs.h"
@@ -9,6 +9,7 @@
 extern pid_t g_worker_pids[8];
 extern int   g_num_workers;
 extern int          g_pipes[8][2];
+extern t_match *g_all_matches; extern char (*g_subdirs)[4096];
 
 extern volatile sig_atomic_t g_partial_matches;
 extern volatile sig_atomic_t g_files_scanned;

@@ -1,4 +1,4 @@
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -20,6 +20,9 @@ volatile sig_atomic_t g_sigterm_sent[8]   = {0};
 volatile sig_atomic_t g_worker_done[8]    = {0};
 int g_match_pipes[8][2];
 int g_match_pipe_fd = -1;
+
+t_match *g_all_matches  = NULL;
+char   (*g_subdirs)[4096] = NULL;
 
 static int append_str(char *buf, int pos, const char *s)
 {
@@ -161,9 +164,15 @@ void sigint_handler(int sig)
     for (int i = 0; i < g_num_workers; i++)
         waitpid(g_worker_pids[i], NULL, WNOHANG);
 
-    write(STDOUT_FILENO, "[Parent] SIGINT received. Terminating all workers...\n", 53);
+    write(STDERR_FILENO, "[Parent] SIGINT received. Terminating all workers...\n", 53);
 
     print_summary();
+
+    free(g_all_matches);
+    free(g_subdirs);
+    g_all_matches = NULL;
+    g_subdirs     = NULL;
+
     exit(1);
 }
 
@@ -194,7 +203,6 @@ void sigterm_handler(int sig)
 
     exit((int)g_partial_matches % 256);
 }
-
 
 void notify_parent(void)
 {
