@@ -31,39 +31,29 @@ void parse_arguments(int argc, char **argv, t_args *args)
                 break;
 
             case ':':
-                write(STDERR_FILENO, RED, sizeof(RED) - 1);
                 write(STDERR_FILENO, "ERROR! : option requires an argument\n", 38);
-                write(STDERR_FILENO, RESET, sizeof(RESET) - 1);
                 exit(EXIT_FAILURE); 
             default:
-                write(STDERR_FILENO, RED, sizeof(RED) - 1);
                 write(STDERR_FILENO, "ERROR! : Invalid flag!\n", 23);
-                write(STDERR_FILENO, RESET, sizeof(RESET) - 1);
                 exit(EXIT_FAILURE);
         }
     }
 
     if (!args->d_flag || !args->n_flag || !args->f_flag)
     {
-        write(STDERR_FILENO, RED, sizeof(RED) - 1);
         write(STDERR_FILENO, "ERROR! : Missing required argument!\n", 36);
-        write(STDERR_FILENO, RESET, sizeof(RESET) - 1);
         exit(EXIT_FAILURE);
     }
 
     if (optind < argc)
     {
-        write(STDERR_FILENO, RED, sizeof(RED) - 1);
         write(STDERR_FILENO, "ERROR! : Unexpected argument!\n", 30);
-        write(STDERR_FILENO, RESET, sizeof(RESET) - 1);
         exit(EXIT_FAILURE);
     }
 
     if (args->num_workers < 2 || args->num_workers > 8)
     {
-        write(STDERR_FILENO, RED, sizeof(RED) - 1);
         write(STDERR_FILENO, "ERROR! : num_workers must be between 2 and 8\n", 45);
-        write(STDERR_FILENO, RESET, sizeof(RESET) - 1);
         exit(EXIT_FAILURE);
     }
 }
