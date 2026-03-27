@@ -1,0 +1,174 @@
+\documentclass[12pt,a4paper]{article}
+
+% Encoding
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% Layout
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% Packages
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{float}      % <-- ÖNEMLİ (figure sabitleme için)
+\usepackage{caption}
+
+% Section style
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+
+\begin{document}
+
+% ─── COVER PAGE ─────────────────────────────
+\begin{titlepage}
+    \centering
+
+    \vspace*{3cm}
+
+    {\Large \textbf{CSE344 -- Systems Programming}}\\[1.5cm]
+
+    {\LARGE \textbf{Homework \#2}}\\[0.5cm]
+    {\large procSearch Report}\\[2cm]
+
+    \begin{tabular}{rl}
+        \textbf{Name:} & Ayşe Feyza SERBEST \\
+        \textbf{Student ID:} & 220104004052 \\
+        \textbf{Course:} & CSE344 \\
+        \textbf{Homework:} & \#2 \\
+        \textbf{Date:} & \today \\
+    \end{tabular}
+
+    \vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ─── INTRODUCTION ─────────────────────────────
+\section{Introduction}
+
+This program is a multi-process file search utility written in C. 
+It searches files inside a directory using multiple worker processes 
+and reports matching files based on a given pattern and optional size filter.
+
+The main goal of the design is to efficiently utilize multiple processes 
+while maintaining correct inter-process communication and safe signal handling.
+
+% ─── DESIGN DECISIONS ─────────────────────────
+\section{Design Decisions}
+
+\subsection{Directory Partitioning}
+
+Directories are divided among worker processes using a round-robin approach. 
+This ensures that the workload is distributed evenly regardless of directory order.
+
+\subsection{Signal Handling Design}
+
+Signal handling was one of the most challenging parts of this project.
+
+Handling signals asynchronously requires careful design because most standard 
+functions are not safe to use inside signal handlers.
+
+To solve this problem:
+
+\begin{itemize}
+    \item Global variables were used to share state between the main program and signal handlers.
+    \item Only async-signal-safe functions such as \texttt{write()} were used.
+    \item Workers respond to \texttt{SIGTERM} by sending partial results before exiting.
+\end{itemize}
+
+Using global variables significantly simplified communication between the signal 
+handler and the main execution flow.
+
+\subsection{Avoiding Async-Signal-Safety Issues}
+
+To avoid undefined behavior:
+
+\begin{itemize}
+    \item No \texttt{printf()} was used inside signal handlers.
+    \item Only \texttt{write()} system call was used.
+    \item Shared variables were defined as \texttt{volatile sig\_atomic\_t}.
+\end{itemize}
+
+\subsection{Regex Implementation}
+
+The regex functionality was another challenging part.
+
+Instead of using a full regex library, a simplified custom matching logic was implemented.
+
+The main difficulty was handling repetition patterns like \texttt{c+}, 
+which required careful recursive matching.
+
+% ─── SCREENSHOTS ─────────────────────────────
+\section{Screenshots}
+
+\subsection{Test Case 1}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{a.png}
+    \caption{Regex matching}
+\end{figure}
+
+\subsection{Test Case 2}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{b.png}
+    \caption{15 bytes}
+\end{figure}
+
+\subsection{Test Case 3}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{c.png}
+    \caption{20 bytes}
+\end{figure}
+
+\subsection{Test Case 4}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{d.png}
+    \caption{No matching files found.}
+\end{figure}
+
+\subsection{Test Case 5}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{e.png}
+    \caption{Avoid zombie processes.}
+\end{figure}
+
+\subsection{Test Case 6}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{f.png}
+    \caption{monitor.log}
+\end{figure}
+
+% ─── CONCLUSION ─────────────────────────────
+\section{Conclusion}
+
+This project helped deepen my understanding of:
+
+\begin{itemize}
+    \item Process management with \texttt{fork()}
+    \item Inter-process communication using pipes
+    \item Signal handling in Unix systems
+\end{itemize}
+
+The most difficult parts were signal handling and regex implementation.
+
+Signal handling was particularly challenging due to async-signal-safety constraints. 
+Using global variables helped manage shared state safely.
+
+Regex implementation required careful thinking to correctly match patterns 
+with repetition.
+
+Despite these challenges, the project provided valuable experience 
+in system-level programming.
+
+\end{document}
