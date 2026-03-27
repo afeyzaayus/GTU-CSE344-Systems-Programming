@@ -70,7 +70,6 @@ int search_directory(const char *path, t_args *args, int *files_scanned)
     return total;
 }
 
-/* Parent'ın doğrudan kullandığı versiyon — pipe yerine all_matches dizisine yazar */
 int search_directory_collect(const char *path, t_args *args,
                               t_match *all_matches, int *total_match_count)
 {

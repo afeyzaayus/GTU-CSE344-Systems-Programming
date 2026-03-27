@@ -9,7 +9,6 @@ static void print_indent(int depth)
         printf("-");
 }
 
-/* Bir path'i '/' ile parçalara böl, depth'i döndür */
 static int split_path(const char *rel, char parts[][256])
 {
     char tmp[4096];
@@ -40,7 +39,6 @@ void print_tree(const char *root, t_match *matches, int count)
 
     int root_len = strlen(root);
 
-    /* Bir önceki match'in dizin parçaları — tekrar yazdırmamak için */
     char prev_parts[32][256];
     int  prev_depth = 0;
     memset(prev_parts, 0, sizeof(prev_parts));
@@ -51,14 +49,12 @@ void print_tree(const char *root, t_match *matches, int count)
         char parts[32][256];
         int  depth = split_path(rel, parts);
 
-        /* Kaçıncı seviyeden itibaren farklılaşıyor? */
         int common = 0;
-        while (common < prev_depth - 1 &&   /* son eleman (dosya) hariç */
+        while (common < prev_depth - 1 && 
                common < depth  - 1 &&
                strcmp(prev_parts[common], parts[common]) == 0)
             common++;
 
-        /* Sadece farklılaşan kısımdan itibaren yazdır */
         for (int d = common; d < depth; d++) {
             print_indent(d + 1);
 
@@ -69,7 +65,6 @@ void print_tree(const char *root, t_match *matches, int count)
                 printf("-- %s\n", parts[d]);
         }
 
-        /* Şimdiki path'i bir sonraki iterasyon için sakla */
         prev_depth = depth;
         for (int d = 0; d < depth; d++)
             strncpy(prev_parts[d], parts[d], 255);

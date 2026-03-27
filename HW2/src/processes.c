@@ -32,7 +32,6 @@ int create_workers(t_args *args)
     t_match all_matches[1024];
     int total_match_count = 0;
 
-    /* Hiç subdir yoksa parent direkt arar, tree ve summary basar */
     if (num_subdirs == 0) {
         printf("Notice: no subdirectories found; parent will search root directly.\n");
         int total = search_directory_collect(args->root_dir, args,
@@ -57,13 +56,11 @@ int create_workers(t_args *args)
     setup_sigint_handler();
     listen_sigusr1();
 
-    /* 1. Adım: Tüm pipe'ları fork'tan ÖNCE aç */
     for (size_t i = 0; i < args->num_workers; i++) {
         pipe(g_pipes[i]);
         pipe(g_match_pipes[i]);
     }
 
-    /* 2. Adım: Fork et */
     for (size_t i = 0; i < args->num_workers; i++) {
         g_worker_pids[i] = fork();
 
