@@ -8,18 +8,15 @@
 
 
 // bulduğu subdilreri subdirs arrayine yaz
-int root_subdirs(const char *root, char subdirs[][1024])
+int root_subdirs(const char *root)
 {
-    DIR *dir;
+    DIR *dir = opendir(root);
+    if (!dir) return -1;
+
     struct dirent *entry;
     struct stat st;
+    char full_path[4096];
     int count = 0;
-
-    dir = opendir(root);
-    if (!dir)
-        return -1;
-
-    char full_path[1024];
 
     while ((entry = readdir(dir)) != NULL)
     {
@@ -27,19 +24,14 @@ int root_subdirs(const char *root, char subdirs[][1024])
             strcmp(entry->d_name, "..") == 0)
             continue;
 
-        snprintf(full_path, sizeof(full_path),
-                 "%s/%s", root, entry->d_name);
+        snprintf(full_path, sizeof(full_path), "%s/%s", root, entry->d_name);
 
         if (lstat(full_path, &st) == -1)
             continue;
 
         if (S_ISDIR(st.st_mode))
-        {
-            strcpy(subdirs[count], full_path);
             count++;
-        }
     }
-
     closedir(dir);
     return count;
 }

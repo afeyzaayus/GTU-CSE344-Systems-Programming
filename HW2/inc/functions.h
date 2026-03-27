@@ -2,11 +2,45 @@
 #define FUNCTIONS_H
 
 #include "structs.h"
+#include <sys/types.h>
+#include <signal.h>
 
 void parse_arguments(int argc, char **argv, t_args *args);
 int regex(t_args *args, const char *filename);
 void check_directory(const char *path);
-int search_directory(const char *path, t_args *args);
-int root_subdirs(const char *root, char subdirs[][1024]);
+int search_directory(const char *path, t_args *args, int *files_scanned);
+int root_subdirs(const char *root);
+
+extern pid_t g_worker_pids[8];
+extern int   g_num_workers;
+extern int          g_pipes[8][2];
+
+extern volatile sig_atomic_t g_partial_matches;
+extern volatile sig_atomic_t g_files_scanned;
+extern volatile sig_atomic_t g_sigusr1_count;
+extern volatile sig_atomic_t g_worker_matches[8];
+extern volatile sig_atomic_t g_worker_files[8];
+extern volatile sig_atomic_t g_sigterm_sent[8];
+extern int g_match_pipes[8][2];
+
+void print_tree(const char *root, t_match *matches, int count);
+
+void print_summary(void);
+
+void setup_sigchld_handler(void);
+void print_summary(void);
+
+// Signal handling functions
+void setup_sigterm_handler(void);
+void sigusr1_handler(int sig);
+void notify_parent(void);
+void set_parent_pid(pid_t parent_pid);
+void increment_matches(void);
+int get_matches(void);
+void setup_sigint_handler(void);
+void sigint_handler(int sig);
+void set_worker_index(int idx);
+void record_match(void);
+void record_file_scanned(void);
 
 #endif

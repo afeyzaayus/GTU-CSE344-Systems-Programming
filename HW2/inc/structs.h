@@ -34,5 +34,10 @@ typedef struct s_args {
     int s_flag;
 } t_args ;
 
+typedef struct {
+    char path[4096];
+    int  worker_pid;
+    long size;
+} t_match;
 
 #endif 
