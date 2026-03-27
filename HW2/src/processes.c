@@ -31,7 +31,6 @@ int create_workers(t_args *args)
     int num_subdirs = root_subdirs(args->root_dir);
     int total_match_count = 0;
 
-    /* heap'te alloc — global pointer üzerinden sigint_handler'da free edilebilir */
     g_all_matches = malloc(1024 * sizeof(t_match));
     if (!g_all_matches) {
         write(STDERR_FILENO, "ERROR: malloc failed\n", 21);
@@ -59,7 +58,6 @@ int create_workers(t_args *args)
         return 0;
     }
 
-    /* subdirs heap'te — global pointer üzerinden sigint_handler'da free edilebilir */
     g_subdirs = malloc(num_subdirs * 4096);
     if (!g_subdirs) {
         write(STDERR_FILENO, "ERROR: malloc failed\n", 21);
