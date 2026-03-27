@@ -51,6 +51,7 @@ int search_directory(const char *path, t_args *args, int *files_scanned)
                            getpid(), full_path, st.st_size);
 
                     t_match m;
+                    memset(&m, 0, sizeof(t_match));
                     strncpy(m.path, full_path, 4095);
                     m.path[4095] = '\0';
                     m.worker_pid = getpid();
@@ -60,6 +61,56 @@ int search_directory(const char *path, t_args *args, int *files_scanned)
                     total++;
                     g_partial_matches++;
                     record_match();
+                }
+            }
+        }
+    }
+
+    closedir(dir);
+    return total;
+}
+
+/* Parent'ın doğrudan kullandığı versiyon — pipe yerine all_matches dizisine yazar */
+int search_directory_collect(const char *path, t_args *args,
+                              t_match *all_matches, int *total_match_count)
+{
+    DIR *dir;
+    struct dirent *entry;
+    struct stat st;
+    int total = 0;
+
+    dir = opendir(path);
+    if (!dir) return 0;
+
+    char full_path[4096];
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 ||
+            strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+        if (lstat(full_path, &st) == -1) continue;
+
+        if (S_ISDIR(st.st_mode))
+            total += search_directory_collect(full_path, args,
+                                               all_matches, total_match_count);
+        else {
+            if (regex(args, entry->d_name)) {
+                if (!args->s_flag || st.st_size >= args->min_size) {
+                    printf("[Parent PID:%d] MATCH: %s (%ld bytes)\n",
+                           getpid(), full_path, st.st_size);
+
+                    if (*total_match_count < 1024) {
+                        t_match m;
+                        memset(&m, 0, sizeof(t_match));
+                        strncpy(m.path, full_path, 4095);
+                        m.path[4095] = '\0';
+                        m.worker_pid = getpid();
+                        m.size       = st.st_size;
+                        all_matches[(*total_match_count)++] = m;
+                    }
+                    total++;
                 }
             }
         }

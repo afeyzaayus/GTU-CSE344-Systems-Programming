@@ -61,12 +61,7 @@ int fill_subdirs(const char *root, char subdirs[][4096], int max)
 
 int check_num_subdirs(int num_subdirs, t_args *args)
 {
-    if (num_subdirs == 0) {
-        printf("Notice: no subdirectories found; parent will search root directly.\n");
-        int dummy = 0;
-        search_directory(args->root_dir, args, &dummy);
-        return -1;
-    }
+    /* num_subdirs == 0 durumu artık processes.c'de handle ediliyor */
     if (num_subdirs < args->num_workers) {
         printf("Notice: only %d subdirectories found; using %d workers instead of %d.\n",
                num_subdirs, num_subdirs, args->num_workers);

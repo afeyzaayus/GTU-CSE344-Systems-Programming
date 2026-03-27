@@ -21,6 +21,7 @@ extern volatile sig_atomic_t g_sigusr1_count;
 extern volatile sig_atomic_t g_worker_matches[8];
 extern volatile sig_atomic_t g_worker_files[8];
 extern volatile sig_atomic_t g_sigterm_sent[8];
+extern volatile sig_atomic_t g_worker_done[8];
 extern int g_match_pipes[8][2];
 
 void print_tree(const char *root, t_match *matches, int count);
@@ -52,6 +53,8 @@ void parent_process(t_match *all_matches, int *total_match_count);
 void sigterm_handler(int sig);
 void sigint_handler(int sig);
 void sigchld_handler(int sig);
-
+void search_root_files_only(const char *path, t_args *args, int *files_scanned);
+int search_directory_collect(const char *path, t_args *args,
+                              t_match *all_matches, int *total_match_count);
 
 #endif

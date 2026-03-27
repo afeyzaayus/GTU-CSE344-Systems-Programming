@@ -17,6 +17,7 @@ volatile sig_atomic_t g_sigusr1_count     = 0;
 volatile sig_atomic_t g_worker_matches[8] = {0};
 volatile sig_atomic_t g_worker_files[8]   = {0};
 volatile sig_atomic_t g_sigterm_sent[8]   = {0};
+volatile sig_atomic_t g_worker_done[8]    = {0};
 int g_match_pipes[8][2];
 int g_match_pipe_fd = -1;
 
@@ -109,7 +110,7 @@ void sigchld_handler(int sig)
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
         int expected = 0;
         for (int i = 0; i < g_num_workers; i++) {
-            if (g_worker_pids[i] == pid && g_sigterm_sent[i]) {
+            if (g_worker_pids[i] == pid && (g_sigterm_sent[i] || g_worker_done[i])) {
                 expected = 1;
                 break;
             }

@@ -22,8 +22,10 @@ int record_match_and_file(int i, int num_subdirs, t_args *args, char subdirs[][4
     for (size_t j = i; j < num_subdirs; j += args->num_workers)
         match_count += search_directory(subdirs[j], args, &files_scanned);
 
+    /* Önce match pipe'ı kapat (parent 2. döngüde EOF alır) */
     close(g_match_pipes[i][1]);
 
+    /* Sonra results yaz ve kapat (parent 1. döngüde bunu bekliyor) */
     int results[2] = {match_count, files_scanned};
     write(g_pipes[i][1], results, sizeof(results));
     close(g_pipes[i][1]);
