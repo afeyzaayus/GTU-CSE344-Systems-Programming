@@ -6,11 +6,14 @@ MAKEFLAGS   += --no-print-directory
 
 SRC         = ./src/main.c \
               ./src/parse_arguments.c \
+			  ./src/processes.c \
               ./src/regex.c \
 			  ./src/search_directory.c \
-			  ./src/root_subdirs.c \
+			  ./src/setup_signal_handlers.c \
 			  ./src/signal.c \
-			  ./src/tree.c
+			  ./src/subdirs.c \
+			  ./src/tree.c \
+			  ./src/utils.c
 
 OBJ         = $(SRC:.c=.o)
 

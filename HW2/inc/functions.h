@@ -30,7 +30,6 @@ void print_summary(void);
 void setup_sigchld_handler(void);
 void print_summary(void);
 
-// Signal handling functions
 void setup_sigterm_handler(void);
 void sigusr1_handler(int sig);
 void notify_parent(void);
@@ -42,5 +41,17 @@ void sigint_handler(int sig);
 void set_worker_index(int idx);
 void record_match(void);
 void record_file_scanned(void);
+void listen_sigusr1(void);
+void ignore_child_sigint(void);
+void close_child_pipes(int num_workers, int i);
+int record_match_and_file(int i, int num_subdirs, t_args *args, char subdirs[][4096]);
+int fill_subdirs(const char *root, char subdirs[][4096], int max);
+int check_num_subdirs(int num_subdirs, t_args *args);
+int create_workers(t_args *args);
+void parent_process(t_match *all_matches, int *total_match_count);
+void sigterm_handler(int sig);
+void sigint_handler(int sig);
+void sigchld_handler(int sig);
+
 
 #endif

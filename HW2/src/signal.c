@@ -1,8 +1,4 @@
-// signal.c
-
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -21,8 +17,8 @@ volatile sig_atomic_t g_sigusr1_count     = 0;
 volatile sig_atomic_t g_worker_matches[8] = {0};
 volatile sig_atomic_t g_worker_files[8]   = {0};
 volatile sig_atomic_t g_sigterm_sent[8]   = {0};
-int g_match_pipes[8][2];  // match sonuçları için ayrı pipe
-int g_match_pipe_fd = -1; // child'ın yazma ucu
+int g_match_pipes[8][2];
+int g_match_pipe_fd = -1;
 
 static int append_str(char *buf, int pos, const char *s)
 {
@@ -67,7 +63,6 @@ void print_summary(void)
 
     write(STDOUT_FILENO, "\n--- Summary ---\n", 17);
 
-    // Total workers used
     len = 0;
     len = append_str(buf, len, "Total workers used  : ");
     safe_int_to_str(g_num_workers, num);
@@ -75,7 +70,6 @@ void print_summary(void)
     len = append_str(buf, len, "\n");
     write(STDOUT_FILENO, buf, len);
 
-    // Total files scanned
     len = 0;
     len = append_str(buf, len, "Total files scanned : ");
     safe_int_to_str(total_files, num);
@@ -83,7 +77,6 @@ void print_summary(void)
     len = append_str(buf, len, "\n");
     write(STDOUT_FILENO, buf, len);
 
-    // Total matches found
     len = 0;
     len = append_str(buf, len, "Total matches found : ");
     safe_int_to_str(total_matches, num);
@@ -91,9 +84,7 @@ void print_summary(void)
     len = append_str(buf, len, "\n");
     write(STDOUT_FILENO, buf, len);
 
-    // Per-worker
-    for (int i = 0; i < g_num_workers; i++)
-    {
+    for (int i = 0; i < g_num_workers; i++) {
         char pid_str[16], match_str[16];
         safe_int_to_str((int)g_worker_pids[i], pid_str);
         safe_int_to_str((int)g_worker_matches[i], match_str);
@@ -108,8 +99,6 @@ void print_summary(void)
     }
 }
 
-
-
 void sigchld_handler(int sig)
 {
     (void)sig;
@@ -117,20 +106,16 @@ void sigchld_handler(int sig)
     int status;
     pid_t pid;
 
-    while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
-    {
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
         int expected = 0;
-        for (int i = 0; i < g_num_workers; i++)
-        {
-            if (g_worker_pids[i] == pid && g_sigterm_sent[i])
-            {
+        for (int i = 0; i < g_num_workers; i++) {
+            if (g_worker_pids[i] == pid && g_sigterm_sent[i]) {
                 expected = 1;
                 break;
             }
         }
 
-        if (!expected)
-        {
+        if (!expected) {
             char pid_str[16], status_str[16], buf[128];
             int exit_status = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
             safe_int_to_str((int)pid, pid_str);
@@ -147,32 +132,18 @@ void sigchld_handler(int sig)
     }
 }
 
-void setup_sigchld_handler(void)
-{
-    struct sigaction sa;
-    sa.sa_handler = sigchld_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-    sigaction(SIGCHLD, &sa, NULL);
-}
-
 void sigint_handler(int sig)
 {
     (void)sig;
 
-    write(STDOUT_FILENO, "[Parent] SIGINT received. Terminating all workers...\n", 53);
-
-    for (int i = 0; i < g_num_workers; i++)
-    {
-        if (g_worker_pids[i] > 0)
-        {
+    for (int i = 0; i < g_num_workers; i++) {
+        if (g_worker_pids[i] > 0) {
             g_sigterm_sent[i] = 1;
             kill(g_worker_pids[i], SIGTERM);
         }
     }
 
-    for (int i = 0; i < g_num_workers; i++)
-    {
+    for (int i = 0; i < g_num_workers; i++) {
         int results[2] = {0, 0};
         read(g_pipes[i][0], results, sizeof(results));
         close(g_pipes[i][0]);
@@ -189,27 +160,17 @@ void sigint_handler(int sig)
     for (int i = 0; i < g_num_workers; i++)
         waitpid(g_worker_pids[i], NULL, WNOHANG);
 
+    write(STDOUT_FILENO, "[Parent] SIGINT received. Terminating all workers...\n", 53);
+
     print_summary();
-    _exit(1);
+    exit(1);
 }
-void setup_sigint_handler(void)
-{
-    struct sigaction sa;
-    sa.sa_handler = sigint_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    sigaction(SIGINT, &sa, NULL);
-}
-
-
 
 void sigterm_handler(int sig)
 {
     (void)sig;
 
-    // Pipe'a yaz
-    if (g_worker_index >= 0 && g_worker_index < 8)
-    {
+    if (g_worker_index >= 0 && g_worker_index < 8) {
         int results[2] = {(int)g_partial_matches, (int)g_files_scanned};
         write(g_pipes[g_worker_index][1], results, sizeof(results));
         close(g_pipes[g_worker_index][1]);
@@ -230,19 +191,9 @@ void sigterm_handler(int sig)
     len = append_str(buf, len, " files). Exiting.\n");
     write(STDOUT_FILENO, buf, len);
 
-    _exit((int)g_partial_matches % 256);
+    exit((int)g_partial_matches % 256);
 }
 
-void setup_sigterm_handler(void)
-{
-    struct sigaction sa;
-    sa.sa_handler = sigterm_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGTERM, &sa, NULL);
-}
-
-void sigusr1_handler(int sig) { (void)sig; g_sigusr1_count++; }
 
 void notify_parent(void)
 {

@@ -6,9 +6,6 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
-extern volatile sig_atomic_t g_partial_matches;
-extern volatile sig_atomic_t g_files_scanned;
-extern int g_match_pipes[8][2];
 extern int g_worker_index;
 
 void check_directory(const char *path)
@@ -33,8 +30,7 @@ int search_directory(const char *path, t_args *args, int *files_scanned)
 
     char full_path[4096];
 
-    while ((entry = readdir(dir)) != NULL)
-    {
+    while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") == 0 ||
             strcmp(entry->d_name, "..") == 0)
             continue;
@@ -43,22 +39,17 @@ int search_directory(const char *path, t_args *args, int *files_scanned)
         if (lstat(full_path, &st) == -1) continue;
 
         if (S_ISDIR(st.st_mode))
-        {
             total += search_directory(full_path, args, files_scanned);
-        }
-        else
-        {
+
+        else {
             (*files_scanned)++;
             g_files_scanned++;
 
-            if (regex(args, entry->d_name))
-            {
-                if (!args->s_flag || st.st_size >= args->min_size)
-                {
+            if (regex(args, entry->d_name)) {
+                if (!args->s_flag || st.st_size >= args->min_size) {
                     printf("[Worker PID:%d] MATCH: %s (%ld bytes)\n",
                            getpid(), full_path, st.st_size);
 
-                    // Match'i pipe'a yaz
                     t_match m;
                     strncpy(m.path, full_path, 4095);
                     m.path[4095] = '\0';
