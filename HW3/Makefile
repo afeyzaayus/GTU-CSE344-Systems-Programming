@@ -9,7 +9,8 @@ SRC         = ./src/main.c \
 			  ./get_next_line/get_next_line.c \
 			  ./get_next_line/get_next_line_utils.c \
 			  ./src/args.c \
-			  ./src/shm.c
+			  ./src/shm.c \
+			  ./src/shm_init_utils.c
 
 OBJ         = $(SRC:.c=.o)
 

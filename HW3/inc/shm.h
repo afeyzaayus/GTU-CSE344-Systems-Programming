@@ -3,28 +3,13 @@
 
 #include "structs.h"
 
-/*
- * Shared memory düzeni (tek mmap bloğu, sırayla):
- *
- *  [ t_shm_header         ]   ← sabit boyut
- *  [ t_word × word_count  ]   ← words dizisi
- *  [ t_floor × num_floors ]   ← floors dizisi
- *  [ t_elevator × 2       ]   ← delivery + reposition
- *  [ int × num_floors     ]   ← delivery elevator requests
- *  [ int × num_floors     ]   ← reposition elevator requests
- *  [ t_lc_state × total_lc]   ← letter-carrier durumları
- *
- * Tüm pointer'lar yerine offset kullan — fork sonrası
- * farklı process'lerde adres aynı kalır (MAP_SHARED + MAP_ANONYMOUS).
- */
-
 typedef struct s_shm_header {
     int    total_words;
-    int    rr_index;       /* round-robin sayacı */
-    int    done_count;     /* completed word sayısı */
-    int    shutdown;       /* 1 → herkes çıkıyor */
-    sem_t  rr_mutex;       /* rr_index koruması */
-    sem_t  done_mutex;     /* done_count koruması */
+    int    rr_index;
+    int    done_count;
+    int    shutdown;
+    sem_t  rr_mutex;
+    sem_t  done_mutex;
 } t_shm_header;
 
 typedef struct s_shm {
@@ -33,16 +18,23 @@ typedef struct s_shm {
     t_floor       *floors;
     t_elevator    *delivery;
     t_elevator    *reposition;
-    int           *delivery_requests;    /* [num_floors] */
-    int           *reposition_requests;  /* [num_floors] */
+    int           *delivery_requests;
+    int           *reposition_requests;
     t_lc_state    *lc_states;
-    void          *base;   /* mmap başlangıcı (munmap için) */
-    size_t         size;   /* toplam boyut */
+    void          *base;
+    size_t         size;
 } t_shm;
 
+/* shm.c */
 size_t  shm_calc_size(int word_count, int num_floors, int total_lc);
-t_shm   shm_init(int word_count, t_line_input *words_input,
-                 t_config *cfg);
+void    shm_assign_pointers(t_shm *shm, int word_count, int num_floors, int total_lc);
+t_shm   shm_init(int word_count, t_line_input *words_input, t_config *cfg);
 void    shm_destroy(t_shm *shm, int num_floors);
+
+/* shm_init_utils.c */
+void    init_shm_header_values(t_shm_header *header, int word_count);
+void    init_word_info(t_shm *shm, int word_count, t_line_input *words_input);
+void    init_floors(t_shm *shm, int num_floors);
+void    init_elevators(t_shm *shm, t_config *cfg);
 
 #endif
