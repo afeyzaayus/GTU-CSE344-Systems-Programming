@@ -1,0 +1,4 @@
+101 apple 7
+102 process 3
+103 system 12
+104 kernel 5
