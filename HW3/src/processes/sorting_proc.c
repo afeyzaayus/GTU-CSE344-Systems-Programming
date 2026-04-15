@@ -1,33 +1,57 @@
-#include "../inc/process_spawn.h"
-#include "../inc/log.h"
+#include "../../inc/process_spawn.h"
+#include "../../inc/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
+static int find_correct_slot(t_word *w, int i)
+{
+    char c = w->sorting_area[i];
+    int  j;
+
+    if (w->original[i] == c && !w->fixed[i])
+        return i;
+
+    int best_empty   = -1;
+    int best_swappable = -1;
+
+    for (j = 0; j < w->word_len; j++){
+        if (w->original[j] != c)   continue; 
+        if (w->fixed[j])           continue;
+        if (j == i)                continue;   
+
+        if (!w->occupied[j] && best_empty == -1)
+            best_empty = j;
+        else if (w->occupied[j] && best_swappable == -1)
+            best_swappable = j;
+    }
+
+    if (best_empty != -1)     return best_empty;
+    if (best_swappable != -1) return best_swappable;
+    return -1;
+}
+
 static int sort_step(t_shm *shm, int word_idx, int floor)
 {
     t_word *w = &shm->words[word_idx];
-    int changed = 0, i, j, all_fixed;
+    int changed = 0, i, all_fixed;
 
     if (w->sorting_floor != floor || !w->admitted || w->completed)
         return 0;
     if (sem_trywait(&w->word_mutex) != 0)
         return 0;
 
-    for (i = 0; i < w->word_len; i++){
+    for (i = 0; i < w->word_len; i++) {
         if (!w->occupied[i] || w->fixed[i])
             continue;
 
-        char c = w->sorting_area[i];
-        int correct = -1;
+        char c       = w->sorting_area[i];
+        int  correct = find_correct_slot(w, i);
 
-        for (j = 0; j < w->word_len; j++){
-            if (w->original[j] == c && !w->fixed[j])
-            { correct = j; break; }
-        }
-        if (correct < 0) continue;
+        if (correct < 0)
+            continue; 
 
-        if (correct == i){
+        if (correct == i) {
             w->fixed[i] = 1;
             log_fmt("[PID:%d] Sorting-process fixed char '%c' of word %d at index %d\n",
                     getpid(), c, w->word_id, i);
@@ -78,9 +102,9 @@ static int sort_step(t_shm *shm, int word_idx, int floor)
 
 void run_sorting_proc(t_proc_ctx *ctx)
 {
-    t_shm *shm = ctx->shm;
-    int my_floor = ctx->floor;
-    int total = shm->header->total_words;
+    t_shm *shm     = ctx->shm;
+    int my_floor   = ctx->floor;
+    int total      = shm->header->total_words;
     int w, active;
 
     while (!shm->header->shutdown){

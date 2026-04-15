@@ -1,5 +1,5 @@
-#include "../inc/process_spawn.h"
-#include "../inc/log.h"
+#include "../../inc/process_spawn.h"
+#include "../../inc/log.h"
 #include <unistd.h>
 
 static int has_request_in_direction(int *requests, int nf, int cur, int dir)

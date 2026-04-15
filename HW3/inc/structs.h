@@ -69,7 +69,6 @@ typedef struct s_elevator {
     int    current_load;
     sem_t  mutex;
     sem_t  request_sem;
-    /* requests[num_floors] dizisi shm_init içinde offset ile konumlandırılır */
 } t_elevator;
 
 typedef struct s_lc_state {

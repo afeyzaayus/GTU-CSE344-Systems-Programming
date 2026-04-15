@@ -1,5 +1,5 @@
-#include "../inc/functions.h"
-#include "../inc/log.h"
+#include "../../inc/functions.h"
+#include "../../inc/log.h"
 #include <stdlib.h>
 
 void validate_words(t_line_input *words, int word_count, t_config *cfg) {

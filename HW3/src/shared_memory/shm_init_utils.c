@@ -1,4 +1,4 @@
-#include "../inc/shm.h"
+#include "../../inc/shm.h"
 #include <sys/mman.h>
 #include <string.h>
 #include <stdio.h>
@@ -6,23 +6,28 @@
 
 void init_shm_header_values(t_shm_header *header, int word_count)
 {
-    header->total_words = word_count;
-    header->rr_index    = 0;
-    header->done_count  = 0;
-    header->shutdown    = 0;
+    header->total_words    = word_count;
+    header->rr_index       = 0;
+    header->admitted_count = 0;
+    header->done_count     = 0;
+    header->shutdown       = 0;
+    header->retry_count    = 0;
+    header->delivery_ops   = 0;
+    header->reposition_ops = 0;
 
-    if (sem_init(&header->rr_mutex,   1, 1) < 0) { perror("ERROR: sem_init rr");   exit(EXIT_FAILURE); }
-    if (sem_init(&header->done_mutex, 1, 1) < 0) { perror("ERROR: sem_init done"); exit(EXIT_FAILURE); }
+    if (sem_init(&header->rr_mutex,    1, 1) < 0) { perror("ERROR: sem_init rr");    exit(EXIT_FAILURE); }
+    if (sem_init(&header->done_mutex,  1, 1) < 0) { perror("ERROR: sem_init done");  exit(EXIT_FAILURE); }
+    if (sem_init(&header->stats_mutex, 1, 1) < 0) { perror("ERROR: sem_init stats"); exit(EXIT_FAILURE); }
 }
 
 void init_word_info(t_shm *shm, int word_count, t_line_input *words_input){
     for (int i = 0; i < word_count; i++){
         t_word *w = &shm->words[i];
 
-        w->word_id      = words_input[i].word_id;
+        w->word_id       = words_input[i].word_id;
         w->sorting_floor = words_input[i].sorting_floor;
-        w->arrival_floor = -1; 
-        w->word_len     = (int)strlen(words_input[i].word);
+        w->arrival_floor = -1;
+        w->word_len      = (int)strlen(words_input[i].word);
 
         strncpy(w->original, words_input[i].word, MAX_WORD_LEN - 1);
         w->original[MAX_WORD_LEN - 1] = '\0';

@@ -1,5 +1,5 @@
-#include "../inc/process_spawn.h"
-#include "../inc/log.h"
+#include "../../inc/process_spawn.h"
+#include "../../inc/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,16 +78,44 @@ void write_output_file(t_shm *shm, t_config *cfg)
 
 void print_summary(t_shm *shm)
 {
-    int total = shm->header->total_words;
-    int completed = shm->header->done_count;
-    int total_chars = 0, i;
+    int total        = shm->header->total_words;
+    int completed    = shm->header->done_count;
+    int retries      = shm->header->retry_count;
+    int delivery_ops = shm->header->delivery_ops;
+    int repos_ops    = shm->header->reposition_ops;
+    int total_chars  = 0;
+    int i, j;
 
     for (i = 0; i < total; i++)
         total_chars += shm->words[i].word_len;
 
     log_msg("\nSystem Summary:\n");
-    log_fmt("Total words:            %d\n", total);
-    log_fmt("Completed words:        %d\n", completed);
-    log_fmt("Characters transported: %d\n", total_chars);
+    log_msg("--------------------------------------------------\n");
+    log_fmt("Total words:                  %d\n", total);
+    log_fmt("Completed words:              %d\n", completed);
+    log_fmt("Retries: %d\n", retries);
+    log_fmt("Characters transported:       %d\n", total_chars);
+    log_fmt("Delivery elevator operations: %d\n", delivery_ops);
+    log_fmt("Reposition elevator operations: %d\n", repos_ops);
+
+    log_msg("\nPer-word statistics:\n");
+    for (i = 0; i < total; i++){
+        t_word *w           = &shm->words[i];
+        int     delivered   = 0;
+
+        for (j = 0; j < w->word_len; j++)
+            if (w->tasks[j].delivered)
+                delivered++;
+
+        log_fmt("  Word %3d %-*s | arrival: %2d | sorting: %2d"
+                " | chars: %d/%d | %s\n",
+                w->word_id,
+                MAX_WORD_LEN, w->original,
+                w->arrival_floor,
+                w->sorting_floor,
+                delivered, w->word_len,
+                w->completed ? "COMPLETED" : "INCOMPLETE");
+    }
+
     log_msg("\nProgram terminated successfully.\n");
 }

@@ -1,5 +1,5 @@
-#include "../inc/process_spawn.h"
-#include "../inc/log.h"
+#include "../../inc/process_spawn.h"
+#include "../../inc/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -61,8 +61,7 @@ void run_word_carrier(t_proc_ctx *ctx)
     int       total    = shm->header->total_words;
     int       word_idx, j;
 
-    while (!shm->header->shutdown)
-    {
+    while (!shm->header->shutdown){
         sem_wait(&shm->header->done_mutex);
         int admitted_count = shm->header->admitted_count;
         sem_post(&shm->header->done_mutex);
@@ -100,6 +99,11 @@ void run_word_carrier(t_proc_ctx *ctx)
         }
         else{
             w->claimed = 0;
+
+            sem_wait(&shm->header->stats_mutex);
+            shm->header->retry_count++;
+            sem_post(&shm->header->stats_mutex);
+
             log_fmt("[PID:%d] Word %d rejected (floors full), retrying later\n",
                     getpid(), w->word_id);
             usleep(5000);

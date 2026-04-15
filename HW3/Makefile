@@ -6,18 +6,18 @@ LDFLAGS     = -lpthread
 MAKEFLAGS   += --no-print-directory
 
 SRC         = ./src/main.c              \
-              ./src/file_control.c      \
-              ./src/args.c              \
-              ./src/shm.c               \
-              ./src/shm_init_utils.c    \
-              ./src/process_spawn.c     \
-              ./src/word_carrier.c      \
-              ./src/letter_carrier.c    \
-              ./src/sorting_proc.c      \
-              ./src/elevator.c          \
-              ./src/output.c \
-              ./src/log.c \
-              ./src/validate_words.c            \
+              ./src/check/file_control.c      \
+              ./src/check/args.c              \
+              ./src/shared_memory/shm.c               \
+              ./src/shared_memory/shm_init_utils.c    \
+              ./src/processes/process_spawn.c     \
+              ./src/processes/word_carrier.c      \
+              ./src/processes/letter_carrier.c    \
+              ./src/processes/sorting_proc.c      \
+              ./src/processes/elevator.c          \
+              ./src/check/output.c \
+              ./src/check/log.c \
+              ./src/check/validate_words.c            \
               ./get_next_line/get_next_line.c       \
               ./get_next_line/get_next_line_utils.c
 

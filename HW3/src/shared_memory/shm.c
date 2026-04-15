@@ -1,4 +1,4 @@
-#include "../inc/shm.h"
+#include "../../inc/shm.h"
 #include <sys/mman.h>
 #include <string.h>
 #include <stdio.h>
@@ -74,6 +74,7 @@ void shm_destroy(t_shm *shm, int num_floors)
 
     sem_destroy(&shm->header->rr_mutex);
     sem_destroy(&shm->header->done_mutex);
+    sem_destroy(&shm->header->stats_mutex);
 
     for (i = 0; i < shm->header->total_words; i++)
         sem_destroy(&shm->words[i].word_mutex);

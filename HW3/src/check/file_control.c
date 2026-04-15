@@ -1,4 +1,4 @@
-#include "../inc/structs.h"
+#include "../../inc/structs.h"
 #include "../get_next_line/get_next_line.h"
 #include <fcntl.h>
 #include <unistd.h>

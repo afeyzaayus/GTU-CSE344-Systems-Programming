@@ -1,5 +1,5 @@
-#include "../inc/process_spawn.h"
-#include "../inc/log.h"
+#include "../../inc/process_spawn.h"
+#include "../../inc/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -8,8 +8,7 @@ static int find_task(t_shm *shm, int floor, int *out_word, int *out_task)
 {
     int w, t, total = shm->header->total_words;
 
-    for (w = 0; w < total; w++)
-    {
+    for (w = 0; w < total; w++){
         t_word *word = &shm->words[w];
         if (!word->admitted || word->completed)
             continue;
@@ -62,6 +61,20 @@ static void place_char(t_shm *shm, int word_idx, int task_idx)
                 getpid(), w->tasks[task_idx].character, w->word_id);
 }
 
+static void wait_for_capacity(t_elevator *elev, int shutdown_flag)
+{
+    while (!shutdown_flag){
+        sem_wait(&elev->mutex);
+        if (elev->current_load < elev->capacity) {
+            elev->current_load++;
+            sem_post(&elev->mutex);
+            return;
+        }
+        sem_post(&elev->mutex);
+        usleep(5000);  
+    }
+}
+
 static void request_delivery(t_shm *shm, int src_floor, int dest_floor,
                               int word_idx, int task_idx)
 {
@@ -70,9 +83,12 @@ static void request_delivery(t_shm *shm, int src_floor, int dest_floor,
     log_fmt("[PID:%d] Letter-carrier requested delivery elevator"
             " from floor %d to floor %d\n", getpid(), src_floor, dest_floor);
 
+    wait_for_capacity(elev, shm->header->shutdown);
+    if (shm->header->shutdown)
+        return;
+
     sem_wait(&elev->mutex);
     shm->delivery_requests[dest_floor]++;
-    elev->current_load++;
     sem_post(&elev->mutex);
     sem_post(&elev->request_sem);
 
@@ -89,6 +105,10 @@ static void request_delivery(t_shm *shm, int src_floor, int dest_floor,
     elev->current_load--;
     sem_post(&elev->mutex);
 
+    sem_wait(&shm->header->stats_mutex);
+    shm->header->delivery_ops++;
+    sem_post(&shm->header->stats_mutex);
+
     log_fmt("[PID:%d] Letter-carrier brought char '%c' of word %d to floor %d\n",
             getpid(), shm->words[word_idx].tasks[task_idx].character,
             shm->words[word_idx].word_id, dest_floor);
@@ -104,9 +124,12 @@ static int request_reposition(t_shm *shm, t_config *cfg, int current_floor)
     log_fmt("[PID:%d] Letter-carrier requested reposition elevator from floor %d\n",
             getpid(), current_floor);
 
+    wait_for_capacity(elev, shm->header->shutdown);
+    if (shm->header->shutdown)
+        return current_floor;
+
     sem_wait(&elev->mutex);
     shm->reposition_requests[dest]++;
-    elev->current_load++;
     sem_post(&elev->mutex);
     sem_post(&elev->request_sem);
 
@@ -122,6 +145,10 @@ static int request_reposition(t_shm *shm, t_config *cfg, int current_floor)
     sem_wait(&elev->mutex);
     elev->current_load--;
     sem_post(&elev->mutex);
+
+    sem_wait(&shm->header->stats_mutex);
+    shm->header->reposition_ops++;
+    sem_post(&shm->header->stats_mutex);
 
     log_fmt("[PID:%d] Letter-carrier resumed work on floor %d\n", getpid(), dest);
     return dest;

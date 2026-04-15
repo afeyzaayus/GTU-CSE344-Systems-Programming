@@ -1,5 +1,5 @@
-#include "../inc/process_spawn.h"
-#include "../inc/log.h"
+#include "../../inc/process_spawn.h"
+#include "../../inc/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -119,13 +119,80 @@ void spawn_all(t_shm *shm, t_config *cfg, pid_t *pid_list, int *pid_count)
     log_msg("--------------------------------------------------\n");
 }
 
+static int count_live_lc_on_floor(t_shm *shm, t_config *cfg, int floor)
+{
+    int total_lc = cfg->num_floors * cfg->letter_carriers_per_floor;
+    int count    = 0;
+    int i;
+
+    for (i = 0; i < total_lc; i++){
+        pid_t pid = shm->lc_states[i].pid;
+        if (pid <= 0)
+            continue;
+        if (shm->lc_states[i].current_floor != floor)
+            continue;
+        int ret = waitpid(pid, NULL, WNOHANG);
+        if (ret == 0)
+            count++;
+        else
+            shm->lc_states[i].pid = 0;
+    }
+    return count;
+}
+
+typedef struct s_pid_dyn {
+    pid_t *list;
+    int    count;
+    int    cap;
+} t_pid_dyn;
+
+static void dyn_push(t_pid_dyn *d, pid_t pid)
+{
+    if (d->count >= d->cap)
+    {
+        int    new_cap  = d->cap ? d->cap * 2 : 8;
+        pid_t *new_list = realloc(d->list, sizeof(pid_t) * new_cap);
+        if (!new_list) { perror("ERROR: realloc dyn pid"); return; }
+        d->list = new_list;
+        d->cap  = new_cap;
+    }
+    d->list[d->count++] = pid;
+}
+
+static pid_t spawn_replacement_lc(t_shm *shm, t_config *cfg,
+                                   int floor, int global_index)
+{
+    t_proc_ctx ctx;
+    ctx.shm        = shm;
+    ctx.cfg        = cfg;
+    ctx.floor      = floor;
+    ctx.proc_index = 0;  
+
+    pid_t pid = fork();
+    if (pid < 0) { perror("ERROR: fork replacement_lc"); return -1; }
+    if (pid == 0) {
+        int lc_idx = floor * cfg->letter_carriers_per_floor;
+        shm->lc_states[lc_idx].pid           = getpid();
+        shm->lc_states[lc_idx].current_floor = floor;
+        shm->lc_states[lc_idx].idle          = 0;
+
+        log_fmt("[PID:%d] Letter-carrier-process_%d (replacement)"
+                " initialized on floor %d\n",
+                getpid(), global_index, floor);
+        run_letter_carrier(&ctx);
+        exit(EXIT_SUCCESS);
+    }
+    return pid;
+}
+
 void monitor_loop(t_shm *shm, t_config *cfg,
                   pid_t *pid_list, int pid_count)
 {
-    int i;
+    int       i, floor;
+    t_pid_dyn extra = {NULL, 0, 0};
+    int       lc_global_extra = cfg->num_floors * cfg->letter_carriers_per_floor;
 
-    while (!shm->header->shutdown)
-    {
+    while (!shm->header->shutdown) {
         sem_wait(&shm->header->done_mutex);
         int done  = shm->header->done_count;
         int total = shm->header->total_words;
@@ -134,6 +201,20 @@ void monitor_loop(t_shm *shm, t_config *cfg,
         if (done >= total)
             break;
 
+        for (floor = 0; floor < cfg->num_floors; floor++){
+            if (count_live_lc_on_floor(shm, cfg, floor) == 0){
+                log_fmt("[MONITOR] No letter-carrier on floor %d,"
+                        " spawning %d replacement(s)\n",
+                        floor, cfg->letter_carriers_per_floor);
+
+                for (i = 0; i < cfg->letter_carriers_per_floor; i++){
+                    pid_t pid = spawn_replacement_lc(shm, cfg, floor,
+                                                     lc_global_extra++);
+                    if (pid > 0)
+                        dyn_push(&extra, pid);
+                }
+            }
+        }
         usleep(10000);
     }
 
@@ -143,12 +224,18 @@ void monitor_loop(t_shm *shm, t_config *cfg,
     for (i = 0; i < pid_count; i++)
         kill(pid_list[i], SIGTERM);
 
-    for (i = 0; i < pid_count; i++)
-    {
+    for (i = 0; i < extra.count; i++)
+        kill(extra.list[i], SIGTERM);
+
+    for (i = 0; i < pid_count; i++){
         int status;
         if (waitpid(pid_list[i], &status, 0) < 0)
             perror("waitpid");
     }
-
-    (void)cfg;
+    for (i = 0; i < extra.count; i++) {
+        int status;
+        if (waitpid(extra.list[i], &status, 0) < 0)
+            perror("waitpid");
+    }
+    free(extra.list);
 }

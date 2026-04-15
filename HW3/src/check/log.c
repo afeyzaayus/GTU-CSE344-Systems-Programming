@@ -1,4 +1,4 @@
-#include "../inc/log.h"
+#include "../../inc/log.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
