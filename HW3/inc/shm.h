@@ -6,7 +6,8 @@
 typedef struct s_shm_header {
     int    total_words;
     int    rr_index;
-    int    done_count;
+    int    admitted_count; /* kaç word floor'a kabul edildi */
+    int    done_count;     /* kaç word sorting'i bitirdi    */
     int    shutdown;
     sem_t  rr_mutex;
     sem_t  done_mutex;

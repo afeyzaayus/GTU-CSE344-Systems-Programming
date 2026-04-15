@@ -1,5 +1,7 @@
 #include "../inc/functions.h"
 #include "../inc/process_spawn.h"
+#include "../inc/output.h"
+#include "../inc/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -11,35 +13,37 @@ int main(int argc, char **argv)
     t_shm        shm;
     pid_t        *pid_list;
     int          pid_count;
+    int          i;
 
     parse_args(argc, argv, &cfg);
     validate_args(&cfg);
 
-    printf("Program is starting...\n");
-    printf("Input file is being read...\n");
+    log_msg("Program is starting...\n");
+    log_msg("Input file is being read...\n");
 
-    words_input = ft_read_input(cfg.input_file, &word_count);
+    words_input = read_input(cfg.input_file, &word_count);
 
-    printf("Shared memory is being initialized...\n");
+    /* sorting_floor >= num_floors olan word varsa hata ver */
+    validate_words(words_input, word_count, &cfg);
+
+    log_msg("Shared memory is being initialized...\n");
     shm = shm_init(word_count, words_input, &cfg);
 
-    for (int i = 0; i < word_count; i++)
+    for (i = 0; i < word_count; i++)
         free(words_input[i].word);
     free(words_input);
 
-    printf("Synchronization primitives are created...\n");
+    log_msg("Synchronization primitives are created...\n");
 
     pid_list = malloc(sizeof(pid_t) * total_process_count(&cfg));
-    if (!pid_list) {
-        perror("ERROR: malloc pid_list");
-        exit(EXIT_FAILURE);
-    }
+    if (!pid_list) { perror("ERROR: malloc pid_list"); exit(EXIT_FAILURE); }
 
     spawn_all(&shm, &cfg, pid_list, &pid_count);
-
+    setup_signal_handler(&shm, &cfg, pid_list, pid_count);
     monitor_loop(&shm, &cfg, pid_list, pid_count);
 
-    /* TODO: output dosyası yaz, özet yazdır */
+    write_output_file(&shm, &cfg);
+    print_summary(&shm);
 
     free(pid_list);
     shm_destroy(&shm, cfg.num_floors);

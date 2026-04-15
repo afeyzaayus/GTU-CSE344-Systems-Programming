@@ -10,7 +10,8 @@ void         trim_newline(char *line);
 int          is_word_valid(char *word);
 int          is_valid_line(char *line);
 t_line_input parse_line(char *line);
-t_line_input *ft_read_input(const char *filename, int *count);
+t_line_input *read_input(const char *filename, int *count);
+void         validate_words(t_line_input *words, int word_count, t_config *cfg);
 
 /* args.c */
 void         print_usage(const char *prog);
