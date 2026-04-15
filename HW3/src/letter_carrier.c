@@ -14,21 +14,17 @@ static int find_task(t_shm *shm, int floor, int *out_word, int *out_task)
         if (!word->admitted || word->completed)
             continue;
 
-        /* FIX BUG 3: sadece arrival_floor'daki word'lerin task'larını al
-           (src_floor == floor olan task'lar) */
         if (word->arrival_floor != floor)
             continue;
 
-        for (t = 0; t < word->word_len; t++)
-        {
+        for (t = 0; t < word->word_len; t++){
             if (word->tasks[t].claimed || word->tasks[t].delivered)
                 continue;
             if (word->tasks[t].src_floor != floor)
                 continue;
 
             sem_wait(&word->word_mutex);
-            if (!word->tasks[t].claimed && !word->tasks[t].delivered)
-            {
+            if (!word->tasks[t].claimed && !word->tasks[t].delivered){
                 word->tasks[t].claimed = 1;
                 sem_post(&word->word_mutex);
                 *out_word = w;
@@ -47,13 +43,11 @@ static void place_char(t_shm *shm, int word_idx, int task_idx)
     int slot = -1, i;
 
     sem_wait(&w->word_mutex);
-    for (i = 0; i < w->word_len; i++)
-    {
+    for (i = 0; i < w->word_len; i++){
         if (!w->occupied[i] && !w->fixed[i])
         { slot = i; break; }
     }
-    if (slot >= 0)
-    {
+    if (slot >= 0){
         w->sorting_area[slot]        = w->tasks[task_idx].character;
         w->occupied[slot]            = 1;
         w->tasks[task_idx].delivered = 1;
@@ -82,8 +76,7 @@ static void request_delivery(t_shm *shm, int src_floor, int dest_floor,
     sem_post(&elev->mutex);
     sem_post(&elev->request_sem);
 
-    while (!shm->header->shutdown)
-    {
+    while (!shm->header->shutdown){
         sem_wait(&elev->mutex);
         int arrived = (shm->delivery_requests[dest_floor] == 0
                        && elev->current_floor == dest_floor);
@@ -117,8 +110,7 @@ static int request_reposition(t_shm *shm, t_config *cfg, int current_floor)
     sem_post(&elev->mutex);
     sem_post(&elev->request_sem);
 
-    while (!shm->header->shutdown)
-    {
+    while (!shm->header->shutdown){
         sem_wait(&elev->mutex);
         int arrived = (shm->reposition_requests[dest] == 0
                        && elev->current_floor == dest);
@@ -144,12 +136,9 @@ void run_letter_carrier(t_proc_ctx *ctx)
 
     srand(getpid());
 
-    while (!shm->header->shutdown)
-    {
-        if (!find_task(shm, my_floor, &word_idx, &task_idx))
-        {
-            if (++idle_ticks >= 5)
-            {
+    while (!shm->header->shutdown){
+        if (!find_task(shm, my_floor, &word_idx, &task_idx)){
+            if (++idle_ticks >= 5){
                 idle_ticks = 0;
                 my_floor = request_reposition(shm, cfg, my_floor);
             }
@@ -165,13 +154,11 @@ void run_letter_carrier(t_proc_ctx *ctx)
         log_fmt("[PID:%d] Letter-carrier selected char '%c' of word %d from floor %d\n",
                 getpid(), task->character, w->word_id, my_floor);
 
-        if (task->dest_floor == my_floor)
-        {
+        if (task->dest_floor == my_floor){
             log_fmt("[PID:%d] Destination is same floor -> direct placement\n", getpid());
             place_char(shm, word_idx, task_idx);
         }
-        else
-        {
+        else{
             request_delivery(shm, my_floor, task->dest_floor, word_idx, task_idx);
             my_floor = task->dest_floor;
             place_char(shm, word_idx, task_idx);

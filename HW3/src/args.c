@@ -24,10 +24,8 @@ void parse_args(int argc, char **argv, t_config *cfg)
 
     memset(cfg, 0, sizeof(t_config));
 
-    while ((opt = getopt(argc, argv, "f:w:l:s:c:d:r:i:o:")) != -1)
-    {
-        switch (opt)
-        {
+    while ((opt = getopt(argc, argv, "f:w:l:s:c:d:r:i:o:")) != -1){
+        switch (opt){
             case 'f': cfg->num_floors                   = atoi(optarg); break;
             case 'w': cfg->word_carriers_per_floor      = atoi(optarg); break;
             case 'l': cfg->letter_carriers_per_floor    = atoi(optarg); break;
@@ -70,8 +68,7 @@ void validate_args(t_config *cfg)
     if (cfg->input_file)
     {
         int fd = open(cfg->input_file, O_RDONLY);
-        if (fd < 0)
-        {
+        if (fd < 0){
             fprintf(stderr, "Error: Cannot open input file '%s'\n", cfg->input_file);
             ok = 0;
         }
@@ -79,8 +76,7 @@ void validate_args(t_config *cfg)
             close(fd);
     }
 
-    if (!ok)
-    {
+    if (!ok){
         print_usage("./hw3");
         exit(EXIT_FAILURE);
     }

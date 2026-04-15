@@ -18,8 +18,7 @@ pid_t spawn_word_carrier(t_proc_ctx *ctx, int global_index)
 {
     pid_t pid = fork();
     if (pid < 0) { perror("ERROR: fork word_carrier"); exit(EXIT_FAILURE); }
-    if (pid == 0)
-    {
+    if (pid == 0){
         log_fmt("[PID:%d] Word-carrier-process_%d initialized on floor %d\n",
                 getpid(), global_index, ctx->floor);
         run_word_carrier(ctx);
@@ -32,8 +31,7 @@ pid_t spawn_letter_carrier(t_proc_ctx *ctx, int global_index)
 {
     pid_t pid = fork();
     if (pid < 0) { perror("ERROR: fork letter_carrier"); exit(EXIT_FAILURE); }
-    if (pid == 0)
-    {
+    if (pid == 0){
         int lc_idx = ctx->floor * ctx->cfg->letter_carriers_per_floor + ctx->proc_index;
         ctx->shm->lc_states[lc_idx].pid          = getpid();
         ctx->shm->lc_states[lc_idx].current_floor = ctx->floor;
@@ -51,8 +49,7 @@ pid_t spawn_sorting_proc(t_proc_ctx *ctx, int global_index)
 {
     pid_t pid = fork();
     if (pid < 0) { perror("ERROR: fork sorting_proc"); exit(EXIT_FAILURE); }
-    if (pid == 0)
-    {
+    if (pid == 0) {
         log_fmt("[PID:%d] Sorting-process_%d initialized on floor %d\n",
                 getpid(), global_index, ctx->floor);
         run_sorting_proc(ctx);
@@ -65,8 +62,7 @@ pid_t spawn_delivery_elevator(t_shm *shm, t_config *cfg)
 {
     pid_t pid = fork();
     if (pid < 0) { perror("ERROR: fork delivery_elevator"); exit(EXIT_FAILURE); }
-    if (pid == 0)
-    {
+    if (pid == 0){
         log_fmt("[PID:%d] Delivery elevator process started\n", getpid());
         run_delivery_elev(shm, cfg);
         exit(EXIT_SUCCESS);
@@ -78,8 +74,7 @@ pid_t spawn_reposition_elevator(t_shm *shm, t_config *cfg)
 {
     pid_t pid = fork();
     if (pid < 0) { perror("ERROR: fork reposition_elevator"); exit(EXIT_FAILURE); }
-    if (pid == 0)
-    {
+    if (pid == 0){
         log_fmt("[PID:%d] Reposition elevator process started\n", getpid());
         run_reposition_elev(shm, cfg);
         exit(EXIT_SUCCESS);
@@ -99,23 +94,19 @@ void spawn_all(t_shm *shm, t_config *cfg, pid_t *pid_list, int *pid_count)
     log_fmt("[PID:%d] Parent process started\n", getpid());
     log_msg("Processes are being created...\n");
 
-    for (floor = 0; floor < cfg->num_floors; floor++)
-    {
+    for (floor = 0; floor < cfg->num_floors; floor++){
         log_fmt("--- Initializing Floor %d ---\n", floor);
         ctx.floor = floor;
 
-        for (i = 0; i < cfg->word_carriers_per_floor; i++)
-        {
+        for (i = 0; i < cfg->word_carriers_per_floor; i++){
             ctx.proc_index = i;
             pid_list[idx++] = spawn_word_carrier(&ctx, wc_global++);
         }
-        for (i = 0; i < cfg->letter_carriers_per_floor; i++)
-        {
+        for (i = 0; i < cfg->letter_carriers_per_floor; i++){
             ctx.proc_index = i;
             pid_list[idx++] = spawn_letter_carrier(&ctx, lc_global++);
         }
-        for (i = 0; i < cfg->sorting_processes_per_floor; i++)
-        {
+        for (i = 0; i < cfg->sorting_processes_per_floor; i++){
             ctx.proc_index = i;
             pid_list[idx++] = spawn_sorting_proc(&ctx, sp_global++);
         }

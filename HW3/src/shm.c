@@ -12,7 +12,7 @@ size_t shm_calc_size(int word_count, int num_floors, int total_lc)
     size += sizeof(t_word)      * word_count;
     size += sizeof(t_floor)     * num_floors;
     size += sizeof(t_elevator)  * 2;
-    size += sizeof(int)         * num_floors * 2; /* delivery + reposition requests */
+    size += sizeof(int)         * num_floors * 2;
     size += sizeof(t_lc_state)  * total_lc;
 
     return size;
@@ -46,7 +46,6 @@ t_shm shm_init(int word_count, t_line_input *words_input, t_config *cfg)
     total_lc = cfg->num_floors * cfg->letter_carriers_per_floor;
     shm.size = shm_calc_size(word_count, cfg->num_floors, total_lc);
 
-    /* tek anonim mmap bloğu — tüm fork'lar aynı sayfaları görür */
     shm.base = mmap(NULL, shm.size,
                     PROT_READ | PROT_WRITE,
                     MAP_SHARED | MAP_ANONYMOUS,
@@ -57,15 +56,10 @@ t_shm shm_init(int word_count, t_line_input *words_input, t_config *cfg)
     }
     memset(shm.base, 0, shm.size);
 
-    /* pointer'ları blok içine yerleştir */
     shm_assign_pointers(&shm, word_count, cfg->num_floors, total_lc);
-
     init_shm_header_values(shm.header, word_count);
-
     init_word_info(&shm, word_count, words_input);
-
     init_floors(&shm, cfg->num_floors);
-    
     init_elevators(&shm, cfg);
 
     printf("Shared memory initialized (%zu bytes)\n", shm.size);

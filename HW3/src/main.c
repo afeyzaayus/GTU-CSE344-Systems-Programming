@@ -22,8 +22,6 @@ int main(int argc, char **argv)
     log_msg("Input file is being read...\n");
 
     words_input = read_input(cfg.input_file, &word_count);
-
-    /* sorting_floor >= num_floors olan word varsa hata ver */
     validate_words(words_input, word_count, &cfg);
 
     log_msg("Shared memory is being initialized...\n");

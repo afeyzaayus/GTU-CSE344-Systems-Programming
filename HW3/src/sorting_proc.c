@@ -14,30 +14,26 @@ static int sort_step(t_shm *shm, int word_idx, int floor)
     if (sem_trywait(&w->word_mutex) != 0)
         return 0;
 
-    for (i = 0; i < w->word_len; i++)
-    {
+    for (i = 0; i < w->word_len; i++){
         if (!w->occupied[i] || w->fixed[i])
             continue;
 
         char c = w->sorting_area[i];
         int correct = -1;
 
-        for (j = 0; j < w->word_len; j++)
-        {
+        for (j = 0; j < w->word_len; j++){
             if (w->original[j] == c && !w->fixed[j])
             { correct = j; break; }
         }
         if (correct < 0) continue;
 
-        if (correct == i)
-        {
+        if (correct == i){
             w->fixed[i] = 1;
             log_fmt("[PID:%d] Sorting-process fixed char '%c' of word %d at index %d\n",
                     getpid(), c, w->word_id, i);
             changed = 1;
         }
-        else if (!w->occupied[correct])
-        {
+        else if (!w->occupied[correct]){
             w->sorting_area[correct] = c;
             w->occupied[correct]     = 1;
             w->sorting_area[i]       = '\0';
@@ -46,8 +42,7 @@ static int sort_step(t_shm *shm, int word_idx, int floor)
                     getpid(), c, w->word_id, i, correct);
             changed = 1;
         }
-        else if (!w->fixed[correct])
-        {
+        else if (!w->fixed[correct]){
             char tmp                 = w->sorting_area[correct];
             w->sorting_area[correct] = c;
             w->sorting_area[i]       = tmp;
@@ -57,7 +52,6 @@ static int sort_step(t_shm *shm, int word_idx, int floor)
         }
     }
 
-    /* FIX BUG 2: tüm karakterler teslim edildi mi önce kontrol et */
     int all_delivered = 1;
     for (i = 0; i < w->word_len; i++)
         if (!w->tasks[i].delivered) { all_delivered = 0; break; }
@@ -66,8 +60,7 @@ static int sort_step(t_shm *shm, int word_idx, int floor)
     for (i = 0; i < w->word_len; i++)
         if (!w->fixed[i]) { all_fixed = 0; break; }
 
-    if (all_delivered && all_fixed && !w->completed)
-    {
+    if (all_delivered && all_fixed && !w->completed){
         w->completed = 1;
         sem_wait(&shm->floors[floor].mutex);
         shm->floors[floor].current_word_count--;
@@ -90,8 +83,7 @@ void run_sorting_proc(t_proc_ctx *ctx)
     int total = shm->header->total_words;
     int w, active;
 
-    while (!shm->header->shutdown)
-    {
+    while (!shm->header->shutdown){
         active = 0;
         for (w = 0; w < total; w++)
             active += sort_step(shm, w, my_floor);

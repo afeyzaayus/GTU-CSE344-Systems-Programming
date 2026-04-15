@@ -24,8 +24,7 @@ static void run_elevator(t_shm *shm, t_elevator *elev, int *requests,
 {
     int floor, i;
 
-    while (!shm->header->shutdown)
-    {
+    while (!shm->header->shutdown){
         sem_wait(&elev->request_sem);
         if (shm->header->shutdown) break;
 
@@ -35,8 +34,7 @@ static void run_elevator(t_shm *shm, t_elevator *elev, int *requests,
             !has_request_in_direction(requests, nf, elev->current_floor, elev->direction))
         {
             for (i = 0; i < nf; i++)
-                if (requests[i] > 0)
-                {
+                if (requests[i] > 0){
                     elev->direction = (i > elev->current_floor) ? ELEV_UP : ELEV_DOWN;
                     break;
                 }
@@ -47,8 +45,7 @@ static void run_elevator(t_shm *shm, t_elevator *elev, int *requests,
         if (floor < 0)   { floor = 0;      elev->direction = ELEV_UP;   }
         elev->current_floor = floor;
 
-        if (requests[floor] > 0)
-        {
+        if (requests[floor] > 0){
             requests[floor] = 0;
             log_fmt("[PID:%d] %s arrived at floor %d\n", getpid(), label, floor);
         }

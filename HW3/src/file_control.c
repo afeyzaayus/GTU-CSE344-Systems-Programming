@@ -46,39 +46,32 @@ int is_valid_line(char *line)
 {
     int i = 0;
 
-    // id
     if (!isdigit(line[i]))
         return 0;
     while (isdigit(line[i]))
         i++;
 
-    // space
     if (line[i] != ' ')
         return 0;
     i++;
 
-    // word
     if (line[i] < 'a' || line[i] > 'z')
         return 0;
     while (line[i] >= 'a' && line[i] <= 'z')
         i++;
 
-    // space
     if (line[i] != ' ')
         return 0;
     i++;
 
-    // floor
     if (!isdigit(line[i]))
         return 0;
     while (isdigit(line[i]))
         i++;
 
-    // SON: sadece \0 olmalı (newline'lar trim edilmiş olmalı)
     if (line[i] == '\0')
         return 1;
 
-    // Trailing space veya başka karakter varsa hata
     return 0;
 }
 
