@@ -1,7 +1,7 @@
 NAME        = hw3
 
 CC          = gcc
-CFLAGS      = -Wall -Wextra -Iinc -Iget_next_line
+CFLAGS      = -Wall -Iinc -Iget_next_line
 LDFLAGS     = -lpthread
 MAKEFLAGS   += --no-print-directory
 
