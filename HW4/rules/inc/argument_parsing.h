@@ -3,6 +3,7 @@
 
 # define MAX_KEYWORDS 8
 # define MAX_FILES 128
+# define MAX_SOURCES 128
 
 typedef struct s_args {
     char    *config_file;
@@ -12,6 +13,8 @@ typedef struct s_args {
     char    *keywords_raw;
     char    *keywords[MAX_KEYWORDS];
     char    *log_files[MAX_FILES];
+    char    *priority_sources[MAX_SOURCES];
+    int     priority_count;
     int     file_count;
     int     keyword_count;
     int     reader_threads;
@@ -22,6 +25,10 @@ typedef struct s_args {
     int     timeout;
     
 }   t_args;
+
+int start_parsing(int argc, char **argv, t_args *arg);
+int parse_config_file(t_args *arg);
+int priority_parser(t_args *arg);
 
 
 #endif

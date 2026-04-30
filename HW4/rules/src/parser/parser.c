@@ -1,6 +1,8 @@
 #include "../../inc/argument_parsing.h"
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 void init_args(t_args *arg){
     memset(arg, 0, sizeof(t_args));
@@ -22,22 +24,22 @@ int parse_args(int argc, char **argv, t_args *arg){
                 arg->keywords_raw = optarg;
                 break;
             case 't':
-                arg->reader_threads = ft_atoi(optarg);
+                arg->reader_threads = atoi(optarg);
                 break;
             case 'w':
-                arg->worker_threads = ft_atoi(optarg);
+                arg->worker_threads = atoi(optarg);
                 break;
             case 'a':
-                arg->cap_a = ft_atoi(optarg);
+                arg->cap_a = atoi(optarg);
                 break;
             case 'b':
-                arg->cap_b = ft_atoi(optarg);
+                arg->cap_b = atoi(optarg);
                 break;
             case 'd':
-                arg->cap_d = ft_atoi(optarg);
+                arg->cap_d = atoi(optarg);
                 break;
             case 'T':
-                arg->timeout = ft_atoi(optarg);
+                arg->timeout = atoi(optarg);
                 break;
             case 'o':
                 arg->output_txt = optarg;
@@ -53,7 +55,7 @@ int parse_args(int argc, char **argv, t_args *arg){
 }
 
 int validate_args(t_args *arg) {
-    if (!arg->config_file || !arg->filter_file || !arg->keywords_raw
+    if (!arg->config_file || !arg->filter_file || !arg->keywords_raw ||
             !arg->output_txt || !arg->output_bin )
         return (0);
 
@@ -114,6 +116,12 @@ int start_parsing(int argc, char **argv, t_args *arg){
     }
 
     if (!parse_keywords(arg))
+        return (0);
+
+    if (!parse_config_file(arg))
+        return (0);
+
+    if (!priority_parser(arg))
         return (0);
 
     return (1);
