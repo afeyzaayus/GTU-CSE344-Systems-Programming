@@ -14,14 +14,9 @@
 #include "aggregator.h"
 #include "watchdog.h"
 
-// --------------------------------------------------
-// SIGINT HANDLER — sadece async-signal-safe işlemler
-// printf/malloc/free YASAK burada
-// --------------------------------------------------
 volatile sig_atomic_t g_shutdown = 0;
 
-static void sigint_handler(int sig)
-{
+static void sigint_handler(int sig) {
     (void)sig;
     g_shutdown = 1;
 }
@@ -32,12 +27,9 @@ static void sigint_handler(int sig)
 //   pipe_fds[i][0] = read end  (parent/watchdog okur)
 //   pipe_fds[i][1] = write end (reader yazar)
 // --------------------------------------------------
-static int create_pipes(int pipe_fds[][2], int count)
-{
-    for (int i = 0; i < count; i++)
-    {
-        if (pipe(pipe_fds[i]) == -1)
-        {
+static int create_pipes(int pipe_fds[][2], int count) {
+    for (int i = 0; i < count; i++) {
+        if (pipe(pipe_fds[i]) == -1) {
             perror("pipe");
             return (0);
         }
@@ -46,15 +38,13 @@ static int create_pipes(int pipe_fds[][2], int count)
 }
 
 // Child process'te write end açık kalır, read end'leri kapat
-static void close_pipe_read_ends(int pipe_fds[][2], int count)
-{
+static void close_pipe_read_ends(int pipe_fds[][2], int count) {
     for (int i = 0; i < count; i++)
         close(pipe_fds[i][0]);
 }
 
 // Parent/watchdog'da read end'ler açık kalır, write end'leri kapat
-static void close_pipe_write_ends(int pipe_fds[][2], int count)
-{
+static void close_pipe_write_ends(int pipe_fds[][2], int count) {
     for (int i = 0; i < count; i++)
         close(pipe_fds[i][1]);
 }
@@ -66,8 +56,7 @@ static void close_pipe_write_ends(int pipe_fds[][2], int count)
 static int fork_readers(t_args *args, t_shm *shm,
                         int pipe_fds[][2], pid_t *pids)
 {
-    for (int i = 0; i < args->file_count; i++)
-    {
+    for (int i = 0; i < args->file_count; i++) {
         printf("[PID:%d] Forking Reader %d -> %s\n",
                getpid(), i, args->log_files[i]);
 
@@ -75,8 +64,7 @@ static int fork_readers(t_args *args, t_shm *shm,
         if (pid < 0)
             return (perror("fork reader"), 0);
 
-        if (pid == 0)
-        {
+        if (pid == 0) {
             // -- CHILD: Reader process --
 
             // Diğer reader'ların write end'lerini kapat
@@ -137,8 +125,7 @@ static int fork_analyzers(t_args *args, t_shm *shm,
 {
     const char *level_names[] = {"ERROR", "WARN", "INFO", "DEBUG"};
 
-    for (int i = 0; i < 4; i++)
-    {
+    for (int i = 0; i < 4; i++) {
         printf("[PID:%d] Forking Analyzer %s (index %d)\n",
                getpid(), level_names[i], i);
 
@@ -298,8 +285,7 @@ static void print_final_summary(t_args *args, t_shm *shm)
     printf("Program terminated successfully.\n");
 }
 
-int setup_signal_handler(struct sigaction *sa)
-{
+int setup_signal_handler(struct sigaction *sa) {
     memset(sa, 0, sizeof(*sa)); 
     sa->sa_handler = sigint_handler;
     sigemptyset(&sa->sa_mask);
@@ -399,23 +385,20 @@ int main(int argc, char **argv)
     printf("\n");
     
     if(!setup_signal_handler(&sa))
-    return 1;
+        return 1;
     
     if (!shm_init(&shm, &args))
-    return (fprintf(stderr, "Error: shm_init failed\n"), 1);
+        return (fprintf(stderr, "Error: shm_init failed\n"), 1);
     
     printf("[PID:%d] Shared memory initialized (A:%d B:%dx4 D:%d).\n",
         getpid(), args.cap_a, args.cap_b, args.cap_d);
         
     if (!spawn_reader_processes(&args, pipe_fds, &shm, &pid_count, all_pids))
         return 1;
-
     if (!spawn_dispatcher_process(&args, &shm, pipe_fds, all_pids, &pid_count))
         return 1;
-
     if(!spawn_analyzer_processses(&args, &shm, pipe_fds, all_pids, &pid_count))
         return 1;
-
     if(!spawn_aggregator_process(&args, &shm, pipe_fds, all_pids, &pid_count))
         return 1;
 
@@ -432,11 +415,7 @@ int main(int argc, char **argv)
 
     // 13. PIPE READ END'LERİ KAPAT
     close_pipe_read_ends(pipe_fds, args.file_count);
-
-    // 14. FINAL SUMMARY
     print_final_summary(&args, &shm);
-
-    // 15. CLEANUP
     free_args(&args);
     shm_destroy(&shm, &args);
 

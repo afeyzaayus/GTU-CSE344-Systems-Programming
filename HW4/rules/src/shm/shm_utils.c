@@ -3,8 +3,7 @@
 #include <stdio.h>
 #include "shm.h"
 
-int init_mutex(pthread_mutex_t *m)
-{
+int init_mutex(pthread_mutex_t *m) {
     pthread_mutexattr_t attr;
  
     if (pthread_mutexattr_init(&attr) != 0)
@@ -17,8 +16,7 @@ int init_mutex(pthread_mutex_t *m)
     return (1);
 }
 
-int init_cond(pthread_cond_t *c)
-{
+int init_cond(pthread_cond_t *c){
     pthread_condattr_t attr;
  
     if (pthread_condattr_init(&attr) != 0)
@@ -32,8 +30,7 @@ int init_cond(pthread_cond_t *c)
 }
 
 static void destroy_a(t_shm *shm, t_args *args){
-    if (shm->a && shm->a != MAP_FAILED)
-    {
+    if (shm->a && shm->a != MAP_FAILED) {
         pthread_mutex_destroy(&shm->a->mutex);
         pthread_cond_destroy(&shm->a->not_full);
         pthread_cond_destroy(&shm->a->not_empty);
@@ -44,10 +41,8 @@ static void destroy_a(t_shm *shm, t_args *args){
 }
 
 static void destroy_b(t_shm *shm, t_args *args){
-    for (int i = 0; i < 4; i++)
-    {
-        if (shm->b[i] && shm->b[i] != MAP_FAILED)
-        {
+    for (int i = 0; i < 4; i++) {
+        if (shm->b[i] && shm->b[i] != MAP_FAILED) {
             pthread_mutex_destroy(&shm->b[i]->mutex);
             pthread_cond_destroy(&shm->b[i]->not_full);
             pthread_cond_destroy(&shm->b[i]->not_empty);
@@ -59,8 +54,7 @@ static void destroy_b(t_shm *shm, t_args *args){
 }
 
 static void destroy_c(t_shm *shm, t_args *args){
-    if (shm->c && shm->c != MAP_FAILED)
-    {
+    if (shm->c && shm->c != MAP_FAILED) {
         pthread_mutex_destroy(&shm->c->mutex);
         pthread_cond_destroy(&shm->c->result_ready);
         for (int i = 0; i < 4; i++)
@@ -71,8 +65,7 @@ static void destroy_c(t_shm *shm, t_args *args){
 }
 
 static void destroy_d(t_shm *shm, t_args *args){
-    if (shm->d && shm->d != MAP_FAILED)
-    {
+    if (shm->d && shm->d != MAP_FAILED) {
         pthread_mutex_destroy(&shm->d->mutex);
         pthread_cond_destroy(&shm->d->not_full);
         pthread_cond_destroy(&shm->d->not_empty);
@@ -82,8 +75,7 @@ static void destroy_d(t_shm *shm, t_args *args){
     }
 }
 
-void shm_destroy(t_shm *shm, t_args *args)
-{
+void shm_destroy(t_shm *shm, t_args *args) {
     destroy_a(shm, args);
     destroy_b(shm, args);
     destroy_c(shm, args);

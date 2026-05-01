@@ -6,18 +6,7 @@
 # include "log_entry.h"
 # include "argument_parsing.h"
 
-
-
-// --------------------------------------------------
-// t_level_result — ödevin level_result_t spec'i ile birebir eşleşir.
-// Her Analyzer process kendi level slot'unu (0-3) yazar.
-// Aggregator tüm slot'ları okur, output dosyalarını yazar.
-//
-// MAX_WORKERS, MAX_KEYWORDS → argument_parsing.h
-// MAX_SOURCE_LEN            → log_entry.h
-// --------------------------------------------------
-typedef struct s_level_result
-{
+typedef struct s_level_result {
     char    level[8];                           // "ERROR", "WARN", "INFO", "DEBUG"
     long    total_entries;                      // bu level'da işlenen toplam entry
     double  total_weighted_score;               // tüm keyword'lerin toplam weighted score'u
@@ -28,13 +17,7 @@ typedef struct s_level_result
     int     ready;                              // 1 = Analyzer bu level'ı tamamladı
 }   t_level_result;
 
-// --------------------------------------------------
-// REGION A — Dispatcher Input Queue
-// Tüm Reader process'ler buraya yazar.
-// Dispatcher buradan okur.
-// --------------------------------------------------
-typedef struct s_region_a
-{
+typedef struct s_region_a {
     pthread_mutex_t     mutex;                  // PROCESS_SHARED
     pthread_cond_t      not_full;               // PROCESS_SHARED — producer bekler
     pthread_cond_t      not_empty;              // PROCESS_SHARED — consumer bekler
@@ -44,17 +27,10 @@ typedef struct s_region_a
     int                 tail;
     int                 count;
     int                 capacity;
-    // data dizisi struct'ın sonunda gelecek (flexible array değil, max kapasiteli)
-    // NOT: gerçek data shm_init'te ayrı mmap'te tutulur, pointer burada
     t_log_entry         data[];                 // flexible array member
 }   t_region_a;
 
-// --------------------------------------------------
-// REGION B — Per-Level Analysis Buffer (×4)
-// Dispatcher yazar, her Analyzer kendi level'ını okur.
-// --------------------------------------------------
-typedef struct s_region_b
-{
+typedef struct s_region_b{
     pthread_mutex_t     mutex;      // PROCESS_SHARED
     pthread_cond_t      not_full;   // PROCESS_SHARED
     pthread_cond_t      not_empty;  // PROCESS_SHARED
@@ -66,13 +42,7 @@ typedef struct s_region_b
     t_log_entry         data[];     // flexible array member
 }   t_region_b;
 
-// --------------------------------------------------
-// REGION C — Results Area
-// Analyzer'lar sonuçlarını buraya yazar.
-// Aggregator timed wait ile bekler.
-// --------------------------------------------------
-typedef struct s_region_c
-{
+typedef struct s_region_c{
     pthread_mutex_t     mutex;              // PROCESS_SHARED
     pthread_cond_t      result_ready;       // PROCESS_SHARED
     sem_t               sem[4];             // her level için bir semaphore (process-shared)
@@ -80,13 +50,7 @@ typedef struct s_region_c
     double              high_priority_score;// Aggregator hesaplar, parent okur
 }   t_region_c;
 
-// --------------------------------------------------
-// REGION D — High-Priority Buffer
-// Dispatcher, priority source'lardan gelen entry'leri buraya da kopyalar.
-// Aggregator okur.
-// --------------------------------------------------
-typedef struct s_region_d
-{
+typedef struct s_region_d{
     pthread_mutex_t     mutex;          // PROCESS_SHARED
     pthread_cond_t      not_full;       // PROCESS_SHARED
     pthread_cond_t      not_empty;      // PROCESS_SHARED
@@ -98,43 +62,22 @@ typedef struct s_region_d
     t_log_entry         data[];         // flexible array member
 }   t_region_d;
 
-// --------------------------------------------------
-// ANA SHM STRUCT
-// Parent bu pointer'ları tutar ve child'lara fork ile geçer.
-// --------------------------------------------------
-typedef struct s_shm
-{
+typedef struct s_shm{
     t_region_a  *a;         // Region A pointer (mmap ile ayrılmış)
     t_region_b  *b[4];      // Region B pointer'ları (her level için ayrı mmap)
     t_region_c  *c;         // Region C pointer
     t_region_d  *d;         // Region D pointer
 }   t_shm;
 
-// --------------------------------------------------
-// FONKSIYON PROTOTIPLERI
-// --------------------------------------------------
-
-// shm_init: fork'tan ÖNCE parent çağırır
-// tüm region'ları mmap ile ayırır, mutex/condvar'ları PROCESS_SHARED ile init eder
 int     shm_init(t_shm *shm, t_args *args);
-
-// shm_destroy: program bitince parent çağırır
-// mutex/condvar destroy, munmap
 void    shm_destroy(t_shm *shm, t_args *args);
-
-// yardımcı: region_a push/pop (mutex dışarıda alınır)
 int     region_a_push(t_region_a *a, t_log_entry *entry);
 int     region_a_pop(t_region_a *a, t_log_entry *entry);
-
-// yardımcı: region_b push/pop
 int     region_b_push(t_region_b *b, t_log_entry *entry);
 int     region_b_pop(t_region_b *b, t_log_entry *entry);
-
-// yardımcı: region_d push/pop
 int     region_d_push(t_region_d *d, t_log_entry *entry);
 int     region_d_pop(t_region_d *d, t_log_entry *entry);
-
-int init_mutex(pthread_mutex_t *m);
-int init_cond(pthread_cond_t *c);
+int     init_mutex(pthread_mutex_t *m);
+int     init_cond(pthread_cond_t *c);
 
 #endif

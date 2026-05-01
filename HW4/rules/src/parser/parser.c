@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void init_args(t_args *arg){
+void init_args(t_args *arg) {
     memset(arg, 0, sizeof(t_args));
     arg->timeout = 10;
 }
 
-int parse_args(int argc, char **argv, t_args *arg){
+int parse_args(int argc, char **argv, t_args *arg) {
     int opt;
 
     while ((opt = getopt(argc, argv, "c:f:k:t:w:a:b:d:T:o:O:")) != -1) {
@@ -127,20 +127,16 @@ int start_parsing(int argc, char **argv, t_args *arg){
     return (1);
 }
 
-void free_args(t_args *arg)
-{
-    for (int i = 0; i < arg->keyword_count; i++)
-    {
+void free_args(t_args *arg) {
+    for (int i = 0; i < arg->keyword_count; i++) {
         free(arg->keywords[i]);
         arg->keywords[i] = NULL;
     }
-    for (int i = 0; i < arg->file_count; i++)
-    {
+    for (int i = 0; i < arg->file_count; i++) {
         free(arg->log_files[i]);
         arg->log_files[i] = NULL;
     }
-    for (int i = 0; i < arg->priority_count; i++)
-    {
+    for (int i = 0; i < arg->priority_count; i++) {
         free(arg->priority_sources[i]);
         arg->priority_sources[i] = NULL;
     }

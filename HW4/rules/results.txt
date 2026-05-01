@@ -14,7 +14,7 @@ INFO  auth:2
 DEBUG disk:1
 WARN 
 # Per-thread contributions (weighted score)
-ERROR thread_0:0.0 thread_1:8.0 thread_2:4.0
-INFO  thread_0:2.0 thread_1:0.0 thread_2:0.0
-DEBUG thread_0:0.0 thread_1:1.0 thread_2:0.0
+ERROR thread_0:0.0 thread_1:4.0 thread_2:8.0
+INFO  thread_0:0.0 thread_1:2.0 thread_2:0.0
+DEBUG thread_0:1.0 thread_1:0.0 thread_2:0.0
 WARN  thread_0:0.0 thread_1:0.0 thread_2:0.0

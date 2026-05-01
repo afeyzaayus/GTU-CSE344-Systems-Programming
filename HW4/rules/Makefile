@@ -12,11 +12,9 @@ SRC         = ./src/main.c              \
 			  ./src/dispatcher.c \
 			  ./src/reader.c \
 			  ./src/watchdog.c \
-			  ./src/parser/config_parser.c \
 			  ./src/parser/log_entry.c \
-			  ./src/parser/parser_utils.c \
+			  ./src/parser/parser_files.c \
 			  ./src/parser/parser.c \
-			  ./src/parser/priority_parser.c \
 			  ./src/shm/shm_queue.c \
 			  ./src/shm/shm_utils.c \
 			  ./src/shm/shm.c \

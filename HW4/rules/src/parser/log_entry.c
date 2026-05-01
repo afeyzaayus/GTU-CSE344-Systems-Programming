@@ -1,13 +1,7 @@
 #include <string.h>
 #include "log_entry.h"
 
-
-
-// --------------------------------------------------
-// LEVEL PARSER
-// --------------------------------------------------
-static int	parse_level_str(char *str, t_level *level)
-{
+static int	parse_level_str(char *str, t_level *level) {
 	if (strcmp(str, "ERROR") == 0)
 		*level = LV_ERROR;
 	else if (strcmp(str, "WARN") == 0)
@@ -21,20 +15,12 @@ static int	parse_level_str(char *str, t_level *level)
 	return (1);
 }
 
-// --------------------------------------------------
-// SKIP SPACES
-// --------------------------------------------------
-static void	skip_spaces(char **p)
-{
+static void	skip_spaces(char **p) {
 	while (**p == ' ')
 		(*p)++;
 }
 
-// --------------------------------------------------
-// TIMESTAMP
-// --------------------------------------------------
-static int	handle_timestamp(t_log_entry *e, char **p)
-{
+static int	handle_timestamp(t_log_entry *e, char **p) {
 	char	*start;
 	int		len;
 
@@ -60,11 +46,7 @@ static int	handle_timestamp(t_log_entry *e, char **p)
 	return (1);
 }
 
-// --------------------------------------------------
-// LEVEL
-// --------------------------------------------------
-static int	handle_level(t_log_entry *e, char **p)
-{
+static int	handle_level(t_log_entry *e, char **p) {
 	char	buffer[TMP_BUF_SIZE];
 	char	*start;
 	int		len;
@@ -94,11 +76,7 @@ static int	handle_level(t_log_entry *e, char **p)
 	return (1);
 }
 
-// --------------------------------------------------
-// SOURCE
-// --------------------------------------------------
-static int	handle_source(t_log_entry *e, char **p)
-{
+static int	handle_source(t_log_entry *e, char **p) {
 	char	*start;
 	int		len;
 
@@ -124,28 +102,17 @@ static int	handle_source(t_log_entry *e, char **p)
 	return (1);
 }
 
-// --------------------------------------------------
-// MESSAGE
-// --------------------------------------------------
-static int	handle_message(t_log_entry *e, char **p)
-{
+static int	handle_message(t_log_entry *e, char **p) {
 	if (**p == '\0')
 		return (0);
-
 	strncpy(e->message, *p, MAX_MESSAGE_LEN - 1);
 	e->message[MAX_MESSAGE_LEN - 1] = '\0';
-
 	e->is_eof = 0;
 	return (1);
 }
 
-// --------------------------------------------------
-// MAIN PARSER
-// --------------------------------------------------
-int	parse_log_line(char *line, t_log_entry *e)
-{
+int	parse_log_line(char *line, t_log_entry *e) {
 	char	*p;
-
 	p = line;
 
 	if (!handle_timestamp(e, &p))
