@@ -280,6 +280,9 @@ void run_aggregator(t_args *args, t_shm *shm)
     // High-priority score
     double hp_score = calc_high_priority_score(shm, args);
 
+    // Parent'ın okuyabilmesi için Region C'ye yaz
+    shm->c->high_priority_score = hp_score;
+
     // Total weighted
     double total_weighted = 0.0;
     for (int i = 0; i < 4; i++)

@@ -265,7 +265,7 @@ static void print_final_summary(t_args *args, t_shm *shm)
     //  ama basit tutmak için Region C'den okuyoruz)
     // NOT: Aggregator high_priority_score'u Region C'ye yazmıyorsa
     // bu değer 0 kalır — Aggregator implementasyonunda düzeltilecek
-    (void)high_priority;
+    high_priority = shm->c->high_priority_score;
 
     printf("==================================================\n");
     printf("SYSTEM SUMMARY\n");
@@ -413,6 +413,7 @@ int main(int argc, char **argv)
     print_final_summary(&args, &shm);
 
     // 15. CLEANUP
+    free_args(&args);
     shm_destroy(&shm, &args);
 
     return (0);

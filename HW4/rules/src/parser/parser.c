@@ -126,3 +126,22 @@ int start_parsing(int argc, char **argv, t_args *arg){
 
     return (1);
 }
+
+void free_args(t_args *arg)
+{
+    for (int i = 0; i < arg->keyword_count; i++)
+    {
+        free(arg->keywords[i]);
+        arg->keywords[i] = NULL;
+    }
+    for (int i = 0; i < arg->file_count; i++)
+    {
+        free(arg->log_files[i]);
+        arg->log_files[i] = NULL;
+    }
+    for (int i = 0; i < arg->priority_count; i++)
+    {
+        free(arg->priority_sources[i]);
+        arg->priority_sources[i] = NULL;
+    }
+}
