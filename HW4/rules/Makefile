@@ -5,9 +5,23 @@ CFLAGS      = -Wall -Iinc -Iget_next_line
 LDFLAGS     = -lpthread
 MAKEFLAGS   += --no-print-directory
 
-SRC         = $(wildcard ./src/*.c)         \
-              $(wildcard ./src/parser/*.c)   \
-              $(wildcard ./src/shm/*.c)
+SRC         = ./src/main.c              \
+              ./src/aggregator.c \
+			  ./src/analyzer.c \
+			  ./src/buffer.c \
+			  ./src/dispatcher.c \
+			  ./src/reader.c \
+			  ./src/watchdog.c \
+			  ./src/parser/config_parser.c \
+			  ./src/parser/log_entry.c \
+			  ./src/parser/parser_utils.c \
+			  ./src/parser/parser.c \
+			  ./src/parser/priority_parser.c \
+			  ./src/shm/shm_queue.c \
+			  ./src/shm/shm_utils.c \
+			  ./src/shm/shm.c \
+
+
 
 OBJ         = $(SRC:.c=.o)
 

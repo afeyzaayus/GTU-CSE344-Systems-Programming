@@ -298,108 +298,132 @@ static void print_final_summary(t_args *args, t_shm *shm)
     printf("Program terminated successfully.\n");
 }
 
-// --------------------------------------------------
-// MAIN
-// --------------------------------------------------
+int setup_signal_handler(struct sigaction *sa)
+{
+    memset(sa, 0, sizeof(*sa)); 
+    sa->sa_handler = sigint_handler;
+    sigemptyset(&sa->sa_mask);
+    sa->sa_flags = 0;
+    if (sigaction(SIGINT, sa, NULL) == -1)
+        return (perror("sigaction"), 0);
+    return (1);
+}
+
+int spawn_reader_processes(t_args *args, int pipe_fds[][2], t_shm *shm,
+        int *pid_count, pid_t *all_pids){ 
+    pid_t reader_pids[MAX_FILES];
+
+    if (!create_pipes(pipe_fds, args->file_count))
+        return (shm_destroy(shm, args), 0);
+
+    if (!fork_readers(args, shm, pipe_fds, reader_pids))
+        return (shm_destroy(shm, args), 0);
+
+    for (int i = 0; i < args->file_count; i++)
+        all_pids[(*pid_count)++] = reader_pids[i];
+
+    return 1;
+}
+
+int spawn_dispatcher_process(t_args *args, t_shm *shm, int pipe_fds[][2], pid_t *all_pids,
+        int *pid_count){
+    pid_t disp_pid = fork_dispatcher(args, shm, pipe_fds);
+    if (disp_pid < 0)
+        return (shm_destroy(shm, args), 0);
+    all_pids[(*pid_count)++] = disp_pid;
+    return 1;
+}
+
+int spawn_analyzer_processses(t_args *args, t_shm *shm, int pipe_fds[][2], pid_t *all_pids,
+        int *pid_count){
+    pid_t analyzer_pids[4];
+    if (!fork_analyzers(args, shm, pipe_fds, analyzer_pids))
+        return (shm_destroy(shm, args), 0);
+
+    for (int i = 0; i < 4; i++)
+        all_pids[(*pid_count)++] = analyzer_pids[i];
+
+    return 1;
+}
+
+int spawn_aggregator_process(t_args *args, t_shm *shm, int pipe_fds[][2], pid_t *all_pids,
+        int *pid_count){
+    pid_t agg_pid = fork_aggregator(args, shm, pipe_fds);
+    if (agg_pid < 0)
+        return (shm_destroy(shm, args), 0);
+    all_pids[(*pid_count)++] = agg_pid;
+    return 1;
+}
+
+int start_watchdog_thread(t_watchdog_args *wdog_args, t_args *args, t_shm *shm, int pipe_fds[][2], pid_t *all_pids,
+        int *pid_count, pthread_t *watchdog_tid){
+    // bundan dolayı sorun çıkabilir
+    wdog_args->pipe_fds      = pipe_fds;
+    wdog_args->reader_count  = args->file_count;
+    wdog_args->log_files     = args->log_files;
+    wdog_args->all_pids      = all_pids;
+    wdog_args->pid_count     = *pid_count;
+    wdog_args->shutdown      = &g_shutdown;
+
+    if (pthread_create(watchdog_tid, NULL, watchdog_thread, wdog_args) != 0)
+        return (perror("pthread_create watchdog"), shm_destroy(shm, args), 0);
+    printf("[PID:%d] Watchdog thread started.\n", getpid());
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     t_args      args;
+    struct sigaction sa;
     t_shm       shm;
     pthread_t   watchdog_tid;
-
-    // pipe_fds: her reader için bir pipe çifti
-    // MAX_FILES kadar alan ayırıyoruz
-    int pipe_fds[MAX_FILES][2];
-
-    // Tüm child pid'leri:
-    // reader(×N) + dispatcher(1) + analyzer(4) + aggregator(1)
-    pid_t all_pids[MAX_FILES + 6];
+    int pipe_fds[MAX_FILES][2]; // pipe_fds: her reader için bir pipe çifti
+    pid_t all_pids[MAX_FILES + 6]; // reader(×N) + dispatcher(1) + analyzer(4) + aggregator(1)
     int   pid_count = 0;
+    t_watchdog_args wdog_args;
+    
+
+    if (!start_parsing(argc, argv, &args))
+        return (1);
 
     memset(&shm, 0, sizeof(t_shm));
     memset(all_pids, -1, sizeof(all_pids));
 
-    // 1. ARG PARSING
-    if (!start_parsing(argc, argv, &args))
-        return (1);
-
     printf("[PID:%d] Parent started. Files: %d, Keywords: ",
            getpid(), args.file_count);
-    for (int i = 0; i < args.keyword_count; i++)
-    {
+    for (int i = 0; i < args.keyword_count; i++) {
         printf("%s", args.keywords[i]);
         if (i < args.keyword_count - 1)
-            printf(",");
+        printf(",");
     }
     printf("\n");
-
-    // 2. SIGINT HANDLER
-    struct sigaction sa;
-    memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = sigint_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    if (sigaction(SIGINT, &sa, NULL) == -1)
-        return (perror("sigaction"), 1);
-
-    // 3. SHARED MEMORY INIT (fork'tan ÖNCE)
+    
+    if(!setup_signal_handler(&sa))
+    return 1;
+    
     if (!shm_init(&shm, &args))
-        return (fprintf(stderr, "Error: shm_init failed\n"), 1);
-
+    return (fprintf(stderr, "Error: shm_init failed\n"), 1);
+    
     printf("[PID:%d] Shared memory initialized (A:%d B:%dx4 D:%d).\n",
-           getpid(), args.cap_a, args.cap_b, args.cap_d);
+        getpid(), args.cap_a, args.cap_b, args.cap_d);
+        
+    if (!spawn_reader_processes(&args, pipe_fds, &shm, &pid_count, all_pids))
+        return 1;
 
-    // 4. PIPE OLUŞTUR (reader sayısı kadar)
-    if (!create_pipes(pipe_fds, args.file_count))
-        return (shm_destroy(&shm, &args), 1);
+    if (!spawn_dispatcher_process(&args, &shm, pipe_fds, all_pids, &pid_count))
+        return 1;
 
-    // 5. FORK: READER'LAR
-    pid_t reader_pids[MAX_FILES];
-    if (!fork_readers(&args, &shm, pipe_fds, reader_pids))
-        return (shm_destroy(&shm, &args), 1);
+    if(!spawn_analyzer_processses(&args, &shm, pipe_fds, all_pids, &pid_count))
+        return 1;
 
-    for (int i = 0; i < args.file_count; i++)
-        all_pids[pid_count++] = reader_pids[i];
+    if(!spawn_aggregator_process(&args, &shm, pipe_fds, all_pids, &pid_count))
+        return 1;
 
-    // 6. FORK: DISPATCHER
-    pid_t disp_pid = fork_dispatcher(&args, &shm, pipe_fds);
-    if (disp_pid < 0)
-        return (shm_destroy(&shm, &args), 1);
-    all_pids[pid_count++] = disp_pid;
-
-    // 7. FORK: ANALYZER'LAR (×4)
-    pid_t analyzer_pids[4];
-    if (!fork_analyzers(&args, &shm, pipe_fds, analyzer_pids))
-        return (shm_destroy(&shm, &args), 1);
-
-    for (int i = 0; i < 4; i++)
-        all_pids[pid_count++] = analyzer_pids[i];
-
-    // 8. FORK: AGGREGATOR
-    pid_t agg_pid = fork_aggregator(&args, &shm, pipe_fds);
-    if (agg_pid < 0)
-        return (shm_destroy(&shm, &args), 1);
-    all_pids[pid_count++] = agg_pid;
-
-    // 9. PARENT: write end'leri kapat (artık parent yazmıyor)
     close_pipe_write_ends(pipe_fds, args.file_count);
 
-    // 10. WATCHDOG THREAD BAŞLAT
-    // Watchdog'a geçilecek veri
-    t_watchdog_args wdog_args;
-    wdog_args.pipe_fds      = pipe_fds;
-    wdog_args.reader_count  = args.file_count;
-    wdog_args.log_files     = args.log_files;
-    wdog_args.all_pids      = all_pids;
-    wdog_args.pid_count     = pid_count;
-    wdog_args.shutdown      = &g_shutdown;
+    if (!start_watchdog_thread(&wdog_args, &args, &shm, pipe_fds, all_pids, &pid_count, &watchdog_tid))
+        return 1;
 
-    if (pthread_create(&watchdog_tid, NULL, watchdog_thread, &wdog_args) != 0)
-        return (perror("pthread_create watchdog"), shm_destroy(&shm, &args), 1);
-
-    printf("[PID:%d] Watchdog thread started.\n", getpid());
-
-    // 11. TÜM CHILD'LARI BEKLE
     wait_for_children(all_pids, pid_count);
 
     // 12. WATCHDOG'U DURDUR
