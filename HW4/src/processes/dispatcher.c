@@ -4,9 +4,9 @@
 #include <unistd.h>
 #include <time.h>
 #include <pthread.h>
-#include "dispatcher.h"
-#include "shm.h"
-#include "log_entry.h"
+#include "../../inc/dispatcher.h"
+#include "../../inc/shm.h"
+#include "../../inc/log_entry.h"
 
 static int is_priority_source(t_args *args, const char *source){
     for (int i = 0; i < args->priority_count; i++) {

@@ -1,4 +1,4 @@
-#include "main.h"
+#include "../../inc/main.h"
 
 int create_pipes(int pipe_fds[][2], int count) {
     for (int i = 0; i < count; i++) {

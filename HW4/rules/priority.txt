@@ -1,4 +1,0 @@
-kernel
-auth
-disk
-nginx

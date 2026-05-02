@@ -6,9 +6,9 @@
 #include <sys/syscall.h>
 #include <time.h>
 #include <errno.h>
-#include "analyzer.h"
-#include "shm.h"
-#include "log_entry.h"
+#include "../../inc/analyzer.h"
+#include "../../inc/shm.h"
+#include "../../inc/log_entry.h"
 
 int get_level_weight(t_level level){
     if (level == LV_ERROR)  return (4);

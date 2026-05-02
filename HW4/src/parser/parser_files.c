@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "../../inc/parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,10 +67,6 @@ int priority_parser(t_args *arg) {
         i++;
     }
     fclose(fp);
-    if (i == 0) {
-        perror("Error: priority file is empty.");
-        return (0);
-    }
     arg->priority_count = i;
     return (1);
 }

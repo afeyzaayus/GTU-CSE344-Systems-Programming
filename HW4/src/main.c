@@ -1,4 +1,4 @@
-#include "main.h"
+#include "../inc/main.h"
 
 volatile sig_atomic_t g_shutdown = 0;
 
@@ -8,44 +8,44 @@ static void sigint_handler(int sig) {
     g_shutdown = 1;
 }
 
-static void wait_for_children(pid_t *all_pids, int count) {
+static void wait_for_children(pid_t *all_pids, int count){
     int     remaining = count;
     int     status;
     pid_t   wpid;
 
     while (remaining > 0) {
-        if (g_shutdown)
-        {
-            for (int i = 0; i < count; i++) {
-                if (all_pids[i] > 0)
+        if (g_shutdown){
+            fprintf(stderr, "SIGINT received, SIGTERM is being sent to %d children.\n", count);
+            for (int i = 0; i < count; i++){
+                if (all_pids[i] > 0){
                     kill(all_pids[i], SIGTERM);
+                }
             }
-
-            int deadline = 50; 
-            while (deadline-- > 0 && remaining > 0)
-            {
+            int deadline = 50;
+            while (deadline-- > 0 && remaining > 0){
                 wpid = waitpid(-1, &status, WNOHANG);
-                if (wpid > 0)  {
+                if (wpid > 0){
                     remaining--;
                     for (int i = 0; i < count; i++)
                         if (all_pids[i] == wpid)
                             all_pids[i] = -1;
                 }
-                usleep(100000); 
+                usleep(100000);
             }
             break;
         }
 
-        wpid = waitpid(-1, &status, 0);
-        if (wpid > 0)
-        {
+        wpid = waitpid(-1, &status, WNOHANG);
+        if (wpid > 0){
             remaining--;
             for (int i = 0; i < count; i++)
                 if (all_pids[i] == wpid)
                     all_pids[i] = -1;
         }
+        else if (wpid == 0)
+            usleep(50000);
         else if (wpid == -1 && errno == EINTR)
-            continue; 
+            continue;
         else
             break;
     }
@@ -94,7 +94,7 @@ int setup_signal_handler(struct sigaction *sa) {
     memset(sa, 0, sizeof(*sa)); 
     sa->sa_handler = sigint_handler;
     sigemptyset(&sa->sa_mask);
-    sa->sa_flags = 0;
+    sa->sa_flags = SA_RESTART;
     if (sigaction(SIGINT, sa, NULL) == -1)
         return (perror("sigaction"), 0);
     return (1);

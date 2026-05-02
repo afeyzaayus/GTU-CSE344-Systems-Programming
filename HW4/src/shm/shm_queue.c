@@ -1,7 +1,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stdio.h>
-#include "shm.h"
+#include "../../inc/shm.h"
 
 int region_a_push(t_region_a *a, t_log_entry *entry) {
     if (a->count == a->capacity)

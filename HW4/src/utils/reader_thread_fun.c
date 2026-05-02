@@ -7,9 +7,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "reader.h"
-#include "log_entry.h"
-#include "shm.h"
+#include "../../inc/reader.h"
+#include "../../inc/log_entry.h"
+#include "../../inc/shm.h"
 
 void *reader_thread_func(void *arg){
     t_reader_thread_args    *rarg = (t_reader_thread_args *)arg;

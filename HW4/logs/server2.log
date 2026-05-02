@@ -1,0 +1,11 @@
+[2025-03-10 09:00:01] [ERROR] [nginx] Connection fail on upstream server
+[2025-03-10 09:00:02] [WARN] [disk] Disk error reading sector 1024
+[2025-03-10 09:00:03] [INFO] [kernel] System timeout after 30s
+[2025-03-10 09:00:04] [DEBUG] [auth] Login fail attempt from 10.0.0.1
+[2025-03-10 09:00:05] [ERROR] [kernel] error in memory allocator fail
+[2025-03-10 09:00:06] [WARN] [nginx] timeout on connection pool
+[2025-03-10 09:00:07] [INVALID_LEVEL] [kernel] This line must be skipped
+this line has no format at all
+[2025-03-10 09:00:08] [INFO] [disk] timeout reached for disk flush
+[2025-03-10 09:00:09] [ERROR] [auth] Authentication error kill session
+[2025-03-10 09:00:10] [DEBUG] [nginx] Debug timeout check passed

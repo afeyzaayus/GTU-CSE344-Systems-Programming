@@ -1,0 +1,10 @@
+[2025-03-10 10:00:01] [ERROR] [kernel] kill signal received from PID 999
+[2025-03-10 10:00:02] [WARN] [auth] fail to verify token after 3 attempts
+[2025-03-10 10:00:03] [INFO] [nginx] Request timeout after 30s
+[2025-03-10 10:00:04] [DEBUG] [disk] Sector read ok
+[2025-03-10 10:00:05] [ERROR] [nginx] fail to connect upstream error detected
+[2025-03-10 10:00:06] [WARN] [kernel] Memory pressure warning kill candidate
+[2025-03-10 10:00:07] [INFO] [auth] Session established for user admin
+[2025-03-10 10:00:08] [DEBUG] [kernel] Debug: error code 404 in handler
+[2025-03-10 10:00:09] [ERROR] [auth] Login error fail detected kill session
+[2025-03-10 10:00:10] [WARN] [nginx] Upstream fail warning

@@ -1,21 +1,21 @@
 NAME        = analyzer
 
 CC          = gcc
-CFLAGS      = -Wall -Iinc -Iget_next_line
+CFLAGS      = -Wall -Wextra -pthread
 LDFLAGS     = -lpthread
 MAKEFLAGS   += --no-print-directory
 
 SRC         = ./src/main.c              \
-              ./src/aggregator.c \
-			  ./src/analyzer.c \
-			  ./src/buffer.c \
-			  ./src/dispatcher.c \
-			  ./src/forks.c \
-			  ./src/internal_buffer.c \
-			  ./src/reader_thread_fun.c \
-			  ./src/reader.c \
-			  ./src/spawn_processes.c \
-			  ./src/watchdog.c \
+              ./src/processes/aggregator.c \
+			  ./src/processes/analyzer.c \
+			  ./src/processes/dispatcher.c \
+			  ./src/processes/forks.c \
+			  ./src/processes/reader.c \
+			  ./src/processes/watchdog.c \
+			  ./src/utils/buffer.c \
+			  ./src/utils/internal_buffer.c \
+			  ./src/utils/reader_thread_fun.c \
+			  ./src/utils/spawn_processes.c \
 			  ./src/parser/log_entry.c \
 			  ./src/parser/parser_files.c \
 			  ./src/parser/parser.c \

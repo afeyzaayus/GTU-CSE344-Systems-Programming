@@ -1,5 +1,5 @@
 #include <string.h>
-#include "log_entry.h"
+#include "../../inc/log_entry.h"
 
 static int	parse_level_str(char *str, t_level *level) {
 	if (strcmp(str, "ERROR") == 0)

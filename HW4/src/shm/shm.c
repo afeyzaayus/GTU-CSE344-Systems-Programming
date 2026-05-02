@@ -1,7 +1,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stdio.h>
-#include "shm.h"
+#include "../../inc/shm.h"
  
 static int init_region_a(t_shm *shm, int capacity) {
     size_t size = sizeof(t_region_a) + sizeof(t_log_entry) * capacity;

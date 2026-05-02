@@ -7,9 +7,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "reader.h"
-#include "log_entry.h"
-#include "shm.h"
+#include "../../inc/reader.h"
+#include "../../inc/log_entry.h"
+#include "../../inc/shm.h"
 
 int ibuf_init(t_internal_buffer *ibuf, int capacity) {
     ibuf->data = malloc(sizeof(t_log_entry) * capacity);

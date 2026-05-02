@@ -7,9 +7,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "reader.h"
-#include "log_entry.h"
-#include "shm.h"
+#include "../../inc/reader.h"
+#include "../../inc/log_entry.h"
+#include "../../inc/shm.h"
 
 long find_line_start(FILE *fp, long pos) {
     if (pos == 0)

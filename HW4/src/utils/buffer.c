@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "buffer.h"
+#include "../../inc/buffer.h"
 
 int buffer_init(t_circular_buffer *buf, int capacity){
     buf->data = malloc(sizeof(t_log_entry) * capacity);

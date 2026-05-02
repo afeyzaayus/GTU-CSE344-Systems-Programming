@@ -1,4 +1,4 @@
-#include "main.h"
+#include "../../inc/main.h"
 
 int fork_readers(t_args *args, t_shm *shm,
                         int pipe_fds[][2], pid_t *pids)
