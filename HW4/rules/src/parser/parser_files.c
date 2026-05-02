@@ -1,4 +1,4 @@
-#include "../../inc/argument_parsing.h"
+#include "parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

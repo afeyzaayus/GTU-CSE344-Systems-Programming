@@ -10,13 +10,7 @@
 #include "shm.h"
 #include "log_entry.h"
 
-#define MAX_TRACKED_SOURCES 256
-
-// --------------------------------------------------
-// LEVEL WEIGHT
-// --------------------------------------------------
-int get_level_weight(t_level level)
-{
+int get_level_weight(t_level level){
     if (level == LV_ERROR)  return (4);
     if (level == LV_WARN)   return (3);
     if (level == LV_INFO)   return (2);
@@ -24,18 +18,13 @@ int get_level_weight(t_level level)
     return (0);
 }
 
-// --------------------------------------------------
-// KEYWORD COUNT — overlapping sliding window
-// --------------------------------------------------
-int count_keyword(char *text, char *word)
-{
+int count_keyword(char *text, char *word){
     int count = 0;
     int len   = strlen(word);
 
     if (len == 0)
         return (0);
-    while (*text)
-    {
+    while (*text) {
         if (strncmp(text, word, len) == 0)
             count++;
         text++;
@@ -43,58 +32,10 @@ int count_keyword(char *text, char *word)
     return (count);
 }
 
-// --------------------------------------------------
-// TLS VERİSİ
-// Destructor'ın region_c ve args'a ihtiyacı var.
-// Bu pointer'lar thread başlangıcında set edilir.
-// --------------------------------------------------
-typedef struct s_source_entry
-{
-    char    source[MAX_SOURCE_LEN];
-    long    hits;
-}   t_source_entry;
-
-typedef struct s_tls_data
-{
-    // Asıl veri
-    double          keyword_scores[MAX_KEYWORDS];
-    long            entry_count;
-    double          total_score;
-    t_source_entry  sources[MAX_TRACKED_SOURCES];
-    int             source_count;
-    int             thread_slot;
-    pid_t           tid;
-    int             level_index;
-    // Destructor'ın erişmesi gereken pointer'lar
-    t_region_c      *region_c_ptr;
-    t_args          *args_ptr;
-}   t_tls_data;
-
-// --------------------------------------------------
-// WORKER THREAD ARGÜMANLARI
-// --------------------------------------------------
-typedef struct s_worker_args
-{
-    int                 worker_id;
-    int                 level_index;
-    t_region_b          *region_b;
-    t_region_c          *region_c;
-    t_args              *args;
-    pthread_key_t       tls_key;
-    pthread_barrier_t   *barrier;
-    pid_t               *lowest_tid;
-    pthread_mutex_t     *lowest_tid_mutex;
-}   t_worker_args;
-
-// --------------------------------------------------
-// YARDIMCI: Source hit ekle/güncelle (TLS tablosunda)
-// --------------------------------------------------
 static void add_source_hit(t_tls_data *tls, const char *source, long hits)
 {
-    for (int i = 0; i < tls->source_count; i++)
-    {
-        if (strcmp(tls->sources[i].source, source) == 0)
-        {
+    for (int i = 0; i < tls->source_count; i++){
+        if (strcmp(tls->sources[i].source, source) == 0){
             tls->sources[i].hits += hits;
             return;
         }
@@ -108,11 +49,6 @@ static void add_source_hit(t_tls_data *tls, const char *source, long hits)
     tls->source_count++;
 }
 
-// --------------------------------------------------
-// TLS DESTRUCTOR — thread exit'te otomatik çağrılır
-// Region C'ye flush eder.
-// Barrier'dan SONRA çalışır (thread return → exit → destructor).
-// --------------------------------------------------
 static void tls_destructor(void *ptr)
 {
     t_tls_data  *tls        = (t_tls_data *)ptr;
@@ -120,34 +56,27 @@ static void tls_destructor(void *ptr)
     t_args      *args       = tls->args_ptr;
     int          lv         = tls->level_index;
 
-    if (!region_c || !args)
-    {
+    if (!region_c || !args) {
         free(tls);
         return;
     }
 
     pthread_mutex_lock(&region_c->mutex);
 
-    // per_thread_score
     if (tls->thread_slot >= 0 && tls->thread_slot < MAX_WORKERS)
         region_c->results[lv].per_thread_score[tls->thread_slot] =
             tls->total_score;
 
-    // per_keyword_score
     for (int i = 0; i < args->keyword_count; i++)
         region_c->results[lv].per_keyword_score[i] +=
             tls->keyword_scores[i];
 
-    // total
     region_c->results[lv].total_entries        += tls->entry_count;
     region_c->results[lv].total_weighted_score += tls->total_score;
 
-    // Source merge: top-3 güncelle
-    for (int i = 0; i < tls->source_count; i++)
-    {
+    for (int i = 0; i < tls->source_count; i++){
         int found = 0;
-        for (int j = 0; j < 3; j++)
-        {
+        for (int j = 0; j < 3; j++){
             if (strcmp(region_c->results[lv].top_source[j],
                        tls->sources[i].source) == 0)
             {
@@ -157,12 +86,9 @@ static void tls_destructor(void *ptr)
                 break;
             }
         }
-        if (!found)
-        {
-            // En düşük hit'li slot'u bul ve gerekirse değiştir
+        if (!found){
             int min_idx = 0;
-            for (int j = 1; j < 3; j++)
-            {
+            for (int j = 1; j < 3; j++){
                 if (region_c->results[lv].top_source_hits[j] <
                     region_c->results[lv].top_source_hits[min_idx])
                     min_idx = j;
@@ -184,25 +110,18 @@ static void tls_destructor(void *ptr)
     free(tls);
 }
 
-// --------------------------------------------------
-// WORKER THREAD FONKSİYONU
-// --------------------------------------------------
-static void *worker_thread_func(void *arg)
-{
+static void *worker_thread_func(void *arg){
     t_worker_args   *warg   = (t_worker_args *)arg;
     t_log_entry     entry;
     int             weight  = get_level_weight((t_level)warg->level_index);
 
-    // gettid() — pthread_self() değil, demo'da kontrol edilir
     pid_t my_tid = (pid_t)syscall(SYS_gettid);
 
     printf("[PID:%d][TID:%d] Worker %d started.\n",
            getpid(), (int)my_tid, warg->worker_id);
 
-    // TLS allocate et ve set et
     t_tls_data *tls = calloc(1, sizeof(t_tls_data));
-    if (!tls)
-    {
+    if (!tls) {
         perror("calloc tls");
         return (NULL);
     }
@@ -213,34 +132,28 @@ static void *worker_thread_func(void *arg)
     tls->args_ptr       = warg->args;
     pthread_setspecific(warg->tls_key, tls);
 
-    // Lowest TID kaydı
     pthread_mutex_lock(warg->lowest_tid_mutex);
     if (my_tid < *warg->lowest_tid)
         *warg->lowest_tid = my_tid;
     pthread_mutex_unlock(warg->lowest_tid_mutex);
 
-    // -- Ana iş döngüsü --
-    while (1)
-    {
+    while (1){
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         ts.tv_sec += warg->args->timeout;
 
         pthread_mutex_lock(&warg->region_b->mutex);
 
-        while (warg->region_b->count == 0 && !warg->region_b->eof_posted)
-        {
+        while (warg->region_b->count == 0 && !warg->region_b->eof_posted){
             int rc = pthread_cond_timedwait(&warg->region_b->not_empty,
                                             &warg->region_b->mutex, &ts);
-            if (rc != 0)
-            {
+            if (rc != 0) {
                 clock_gettime(CLOCK_REALTIME, &ts);
                 ts.tv_sec += warg->args->timeout;
             }
         }
 
-        if (warg->region_b->count == 0 && warg->region_b->eof_posted)
-        {
+        if (warg->region_b->count == 0 && warg->region_b->eof_posted){
             pthread_mutex_unlock(&warg->region_b->mutex);
             break;
         }
@@ -252,10 +165,8 @@ static void *worker_thread_func(void *arg)
         if (entry.is_eof)
             break;
 
-        // Keyword scoring
         long total_hits = 0;
-        for (int i = 0; i < warg->args->keyword_count; i++)
-        {
+        for (int i = 0; i < warg->args->keyword_count; i++){
             int    hits = count_keyword(entry.message, warg->args->keywords[i]);
             double sc   = (double)(hits * weight);
             tls->keyword_scores[i] += sc;
@@ -272,16 +183,11 @@ static void *worker_thread_func(void *arg)
            getpid(), (int)my_tid, warg->worker_id,
            tls->entry_count, tls->total_score);
 
-    // BARRIER — hepsi burada bekler
-    // Geçtikten sonra return → pthread_exit → destructor çalışır
     pthread_barrier_wait(warg->barrier);
 
     return (NULL);
 }
 
-// --------------------------------------------------
-// RUN_ANALYZER
-// --------------------------------------------------
 void run_analyzer(t_args *args, t_shm *shm, int level_index)
 {
     const char      *level_names[] = {"ERROR", "WARN", "INFO", "DEBUG"};
@@ -290,35 +196,28 @@ void run_analyzer(t_args *args, t_shm *shm, int level_index)
     printf("[PID:%d] Analyzer %s started. Workers: %d\n",
            getpid(), level_names[level_index], W);
 
-    // Region C'deki bu level slot'unu sıfırla
     memset(&shm->c->results[level_index], 0, sizeof(t_level_result));
     strncpy(shm->c->results[level_index].level,
             level_names[level_index], 7);
 
-    // TLS key
     pthread_key_t tls_key;
     if (pthread_key_create(&tls_key, tls_destructor) != 0)
         return (void)perror("pthread_key_create");
 
-    // Barrier (sadece W worker, run_analyzer katılmıyor)
     pthread_barrier_t barrier;
-    if (pthread_barrier_init(&barrier, NULL, W) != 0)
-    {
+    if (pthread_barrier_init(&barrier, NULL, W) != 0){
         perror("pthread_barrier_init");
         pthread_key_delete(tls_key);
         return;
     }
 
-    // Lowest TID
     pid_t           lowest_tid       = (pid_t)0x7fffffff;
     pthread_mutex_t lowest_tid_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-    // Worker thread'leri
     pthread_t       *tids  = malloc(sizeof(pthread_t) * W);
     t_worker_args   *wargs = malloc(sizeof(t_worker_args) * W);
 
-    if (!tids || !wargs)
-    {
+    if (!tids || !wargs) {
         perror("malloc worker args");
         free(tids);
         free(wargs);
@@ -327,8 +226,7 @@ void run_analyzer(t_args *args, t_shm *shm, int level_index)
         return;
     }
 
-    for (int i = 0; i < W; i++)
-    {
+    for (int i = 0; i < W; i++) {
         wargs[i].worker_id          = i;
         wargs[i].level_index        = level_index;
         wargs[i].region_b           = shm->b[level_index];
@@ -339,8 +237,7 @@ void run_analyzer(t_args *args, t_shm *shm, int level_index)
         wargs[i].lowest_tid         = &lowest_tid;
         wargs[i].lowest_tid_mutex   = &lowest_tid_mutex;
 
-        if (pthread_create(&tids[i], NULL, worker_thread_func, &wargs[i]) != 0)
-        {
+        if (pthread_create(&tids[i], NULL, worker_thread_func, &wargs[i]) != 0) {
             perror("pthread_create worker");
             for (int j = 0; j < i; j++)
                 pthread_join(tids[j], NULL);
@@ -352,11 +249,9 @@ void run_analyzer(t_args *args, t_shm *shm, int level_index)
         }
     }
 
-    // Join — bitince tüm destructor'lar çalışmış, Region C hazır
     for (int i = 0; i < W; i++)
         pthread_join(tids[i], NULL);
 
-    // Reporting (lowest TID'i biz basıyoruz, gerçek reporting thread zaten çıktı)
     printf("[PID:%d][TID:%d] ** Reporting thread (lowest TID). Level: %s **\n",
            getpid(), (int)lowest_tid, level_names[level_index]);
 
@@ -365,16 +260,13 @@ void run_analyzer(t_args *args, t_shm *shm, int level_index)
            shm->c->results[level_index].total_entries,
            shm->c->results[level_index].total_weighted_score);
 
-    // Region C ready
     pthread_mutex_lock(&shm->c->mutex);
     shm->c->results[level_index].ready = 1;
     pthread_cond_broadcast(&shm->c->result_ready);
     pthread_mutex_unlock(&shm->c->mutex);
 
-    // Aggregator'a sinyal
     sem_post(&shm->c->sem[level_index]);
 
-    // Cleanup
     pthread_mutex_destroy(&lowest_tid_mutex);
     pthread_barrier_destroy(&barrier);
     pthread_key_delete(tls_key);

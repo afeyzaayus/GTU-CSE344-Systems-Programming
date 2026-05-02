@@ -14,10 +14,6 @@ static int init_region_a(t_shm *shm, int capacity) {
  
     memset(shm->a, 0, size);
     shm->a->capacity = capacity;
-    // shm->a->head = 0;
-    // shm->a->tail = 0;
-    // shm->a->count = 0;
-    // shm->a->total_readers = 0;
  
     for (int i = 0; i < 4; i++)
         shm->a->eof_count_per_level[i] = 0;
@@ -45,10 +41,6 @@ static int init_region_b(t_shm *shm, int capacity) {
  
         memset(shm->b[i], 0, size);
         shm->b[i]->capacity = capacity;
-        // shm->b[i]->head = 0;
-        // shm->b[i]->tail = 0;
-        // shm->b[i]->count = 0;
-        // shm->b[i]->eof_posted = 0;
  
         if (!init_mutex(&shm->b[i]->mutex))
             return (0);
@@ -77,21 +69,18 @@ static int init_region_c(t_shm *shm) {
     if (!init_cond(&shm->c->result_ready))
         return (0);
  
-    // 4 semaphore — process-shared (pshared=1)
     for (int i = 0; i < 4; i++) {
         if (sem_init(&shm->c->sem[i], 1, 0) != 0)
             return (perror("sem_init"), 0);
     }
- 
-    // result alanlarını sıfırla
+
     for (int i = 0; i < 4; i++)
         shm->c->results[i].ready = 0;
  
     return (1);
 }
 
-static int init_region_d(t_shm *shm, int capacity)
-{
+static int init_region_d(t_shm *shm, int capacity) {
     size_t size = sizeof(t_region_d) + sizeof(t_log_entry) * capacity;
  
     shm->d = mmap(NULL, size,
@@ -103,10 +92,6 @@ static int init_region_d(t_shm *shm, int capacity)
  
     memset(shm->d, 0, size);
     shm->d->capacity = capacity;
-    shm->d->head = 0;
-    shm->d->tail = 0;
-    shm->d->count = 0;
-    shm->d->dispatcher_done = 0;
  
     if (!init_mutex(&shm->d->mutex))
         return (0);

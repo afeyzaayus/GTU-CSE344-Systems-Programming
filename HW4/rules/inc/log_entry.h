@@ -5,8 +5,7 @@
 # define MAX_MESSAGE_LEN 512
 # define TMP_BUF_SIZE 128
 
-typedef enum e_level
-{
+typedef enum e_level{
     LV_ERROR = 0,
     LV_WARN,
     LV_INFO,
@@ -14,8 +13,7 @@ typedef enum e_level
     LV_INVALID
 }   t_level;
 
-typedef struct s_log_entry
-{
+typedef struct s_log_entry{
     char    timestamp[20];
     t_level level;
     char    source[MAX_SOURCE_LEN];

@@ -10,7 +10,11 @@ SRC         = ./src/main.c              \
 			  ./src/analyzer.c \
 			  ./src/buffer.c \
 			  ./src/dispatcher.c \
+			  ./src/forks.c \
+			  ./src/internal_buffer.c \
+			  ./src/reader_thread_fun.c \
 			  ./src/reader.c \
+			  ./src/spawn_processes.c \
 			  ./src/watchdog.c \
 			  ./src/parser/log_entry.c \
 			  ./src/parser/parser_files.c \

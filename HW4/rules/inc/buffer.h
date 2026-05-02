@@ -3,8 +3,7 @@
 
 # include "log_entry.h"
 
-typedef struct s_circular_buffer
-{
+typedef struct s_circular_buffer{
     t_log_entry    *data;
     int             capacity;
     int             head;

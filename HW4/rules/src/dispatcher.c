@@ -8,24 +8,15 @@
 #include "shm.h"
 #include "log_entry.h"
 
-// --------------------------------------------------
-// YARDIMCI: SOURCE priority listesinde mi?
-// --------------------------------------------------
-static int is_priority_source(t_args *args, const char *source)
-{
-    for (int i = 0; i < args->priority_count; i++)
-    {
+static int is_priority_source(t_args *args, const char *source){
+    for (int i = 0; i < args->priority_count; i++) {
         if (strcmp(args->priority_sources[i], source) == 0)
             return (1);
     }
     return (0);
 }
 
-// --------------------------------------------------
-// YARDIMCI: Region B'ye EOF marker gönder
-// --------------------------------------------------
-static void send_eof_to_region_b(t_region_b *b)
-{
+static void send_eof_to_region_b(t_region_b *b){
     t_log_entry eof_entry;
     memset(&eof_entry, 0, sizeof(t_log_entry));
     eof_entry.is_eof = 1;
@@ -39,21 +30,15 @@ static void send_eof_to_region_b(t_region_b *b)
     pthread_mutex_unlock(&b->mutex);
 }
 
-// --------------------------------------------------
-// YARDIMCI: Region D'ye entry kopyala
-// --------------------------------------------------
-static void push_to_region_d(t_region_d *d, t_log_entry *entry, int timeout_sec)
-{
+static void push_to_region_d(t_region_d *d, t_log_entry *entry, int timeout_sec){
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     ts.tv_sec += timeout_sec;
 
     pthread_mutex_lock(&d->mutex);
-    while (d->count == d->capacity)
-    {
+    while (d->count == d->capacity){
         int rc = pthread_cond_timedwait(&d->not_full, &d->mutex, &ts);
-        if (rc != 0)
-        {
+        if (rc != 0){
             fprintf(stderr, "[Dispatcher] Region D full timeout, dropping entry\n");
             pthread_mutex_unlock(&d->mutex);
             return;
@@ -64,21 +49,15 @@ static void push_to_region_d(t_region_d *d, t_log_entry *entry, int timeout_sec)
     pthread_mutex_unlock(&d->mutex);
 }
 
-// --------------------------------------------------
-// YARDIMCI: Region B'ye entry push et
-// --------------------------------------------------
-static void push_to_region_b(t_region_b *b, t_log_entry *entry, int timeout_sec)
-{
+static void push_to_region_b(t_region_b *b, t_log_entry *entry, int timeout_sec){
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     ts.tv_sec += timeout_sec;
 
     pthread_mutex_lock(&b->mutex);
-    while (b->count == b->capacity)
-    {
+    while (b->count == b->capacity){
         int rc = pthread_cond_timedwait(&b->not_full, &b->mutex, &ts);
-        if (rc != 0)
-        {
+        if (rc != 0){
             fprintf(stderr, "[Dispatcher] Region B full timeout, dropping entry\n");
             pthread_mutex_unlock(&b->mutex);
             return;
@@ -89,9 +68,6 @@ static void push_to_region_b(t_region_b *b, t_log_entry *entry, int timeout_sec)
     pthread_mutex_unlock(&b->mutex);
 }
 
-// --------------------------------------------------
-// RUN_DISPATCHER
-// --------------------------------------------------
 void run_dispatcher(t_args *args, t_shm *shm)
 {
     t_log_entry     entry;
@@ -102,36 +78,28 @@ void run_dispatcher(t_args *args, t_shm *shm)
 
     printf("[PID:%d] Dispatcher started.\n", getpid());
 
-    while (finished_levels < 4)
-    {
+    while (finished_levels < 4){
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         ts.tv_sec += timeout_sec;
 
         pthread_mutex_lock(&shm->a->mutex);
 
-        while (shm->a->count == 0)
-        {
+        while (shm->a->count == 0) {
             int rc = pthread_cond_timedwait(&shm->a->not_empty,
                                             &shm->a->mutex, &ts);
-            if (rc != 0)
-            {
-                // Timeout — tüm level EOF'ları iletildi mi?
+            if (rc != 0) {
                 int all_done = 1;
-                for (int lv = 0; lv < 4; lv++)
-                {
-                    if (!eof_forwarded[lv])
-                    {
+                for (int lv = 0; lv < 4; lv++){
+                    if (!eof_forwarded[lv]){
                         all_done = 0;
                         break;
                     }
                 }
-                if (all_done)
-                {
+                if (all_done){
                     pthread_mutex_unlock(&shm->a->mutex);
                     goto dispatcher_done;
                 }
-                // Yenile
                 clock_gettime(CLOCK_REALTIME, &ts);
                 ts.tv_sec += timeout_sec;
             }
@@ -141,17 +109,13 @@ void run_dispatcher(t_args *args, t_shm *shm)
         pthread_cond_signal(&shm->a->not_full);
         pthread_mutex_unlock(&shm->a->mutex);
 
-        // EOF marker mı?
-        if (entry.is_eof)
-        {
+        if (entry.is_eof){
             int lv = (int)entry.level;
             if (lv < 0 || lv >= 4)
                 continue;
 
-            // Bu level için tüm reader'lardan EOF geldi mi?
             if (!eof_forwarded[lv]
-                && shm->a->eof_count_per_level[lv] >= total_readers)
-            {
+                && shm->a->eof_count_per_level[lv] >= total_readers){
                 send_eof_to_region_b(shm->b[lv]);
                 eof_forwarded[lv] = 1;
                 finished_levels++;
@@ -162,7 +126,6 @@ void run_dispatcher(t_args *args, t_shm *shm)
             continue;
         }
 
-        // Normal entry
         int lv = (int)entry.level;
         if (lv < 0 || lv >= 4)
             continue;
@@ -182,17 +145,13 @@ void run_dispatcher(t_args *args, t_shm *shm)
     }
 
 dispatcher_done:
-    // Timeout ile erken biten level'ların EOF'larını zorla gönder
-    for (int lv = 0; lv < 4; lv++)
-    {
-        if (!eof_forwarded[lv])
-        {
+    for (int lv = 0; lv < 4; lv++){
+        if (!eof_forwarded[lv]) {
             send_eof_to_region_b(shm->b[lv]);
             fprintf(stderr, "[Dispatcher] Forced EOF to level %d (timeout)\n", lv);
         }
     }
 
-    // Region D'yi kapat
     pthread_mutex_lock(&shm->d->mutex);
     shm->d->dispatcher_done = 1;
     pthread_cond_signal(&shm->d->not_empty);
