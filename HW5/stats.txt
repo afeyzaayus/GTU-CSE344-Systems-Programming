@@ -1,0 +1,10 @@
+SHIFT_SUMMARY
+Total orders  : 12
+Completed     : 12
+Cancelled     : 0
+Total time    : 64000ms
+Avg per order : 5333ms
+
+COURIER_STATS
+Courier-1 completed=6 total_time=34000ms
+Courier-2 completed=6 total_time=30000ms
