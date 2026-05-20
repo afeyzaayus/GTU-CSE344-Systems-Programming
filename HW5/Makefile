@@ -1,7 +1,7 @@
 NAME        = cargoGTU
 
 CC          = gcc
-CFLAGS      = -Wall 
+CFLAGS      = -Wall -Wextra -std=c11 -pthread
 LDFLAGS     = -lpthread
 MAKEFLAGS   += --no-print-directory
 
