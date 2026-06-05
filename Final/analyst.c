@@ -1,8 +1,3 @@
-/*
- * analyst.c  –  TCP analyst istemcisi
- * Kullanim: ./analyst <server_ip> <tcp_port> <username>
- */
-
 #define _POSIX_C_SOURCE 200809L
 
 #include <stdio.h>
@@ -48,7 +43,7 @@ static int safe_send(int fd, const char *msg)
 int main(int argc, char *argv[])
 {
     if (argc != 4) {
-        fprintf(stderr, "Kullanim: %s <server_ip> <tcp_port> <username>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <server_ip> <tcp_port> <username>\n", argv[0]);
         return 1;
     }
 
@@ -57,7 +52,7 @@ int main(int argc, char *argv[])
     strncpy(g_username, argv[3], sizeof(g_username) - 1);
 
     if (tcp_port < 1024) {
-        fprintf(stderr, "ERROR: port >= 1024 olmali\n"); return 1;
+        fprintf(stderr, "ERROR: port should be >= 1024\n"); return 1;
     }
 
     struct sigaction sa;
@@ -73,7 +68,7 @@ int main(int argc, char *argv[])
     srv.sin_family = AF_INET;
     srv.sin_port   = htons((uint16_t)tcp_port);
     if (inet_pton(AF_INET, server_ip, &srv.sin_addr) <= 0) {
-        fprintf(stderr, "ERROR: gecersiz IP: %s\n", server_ip); return 1;
+        fprintf(stderr, "ERROR: invalid IP: %s\n", server_ip); return 1;
     }
     if (connect(fd, (struct sockaddr *)&srv, sizeof(srv)) < 0) {
         perror("connect"); return 1;
@@ -81,7 +76,6 @@ int main(int argc, char *argv[])
 
     client_log("CONNECTED server=%s:%d\n", server_ip, tcp_port);
 
-    /* JOIN gönder */
     char join_msg[MAX_LINE];
     snprintf(join_msg, sizeof(join_msg), "JOIN ANALYST %s\n", g_username);
     client_log("SENT JOIN\n");
@@ -103,7 +97,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-        /* sunucudan gelen veri */
         if (FD_ISSET(fd, &rfds)) {
             int space = MAX_LINE - 1 - srv_len;
             ssize_t n = recv(fd, srv_buf + srv_len, (size_t)space, 0);
@@ -134,11 +127,9 @@ int main(int argc, char *argv[])
             }
         }
 
-        /* stdin'den komut */
         if (FD_ISSET(STDIN_FILENO, &rfds)) {
             char line[MAX_LINE];
             if (!fgets(line, sizeof(line), stdin)) {
-                /* Ctrl+D */
                 client_log("SENT QUIT\n");
                 safe_send(fd, "QUIT\n");
                 char tmp[MAX_LINE];

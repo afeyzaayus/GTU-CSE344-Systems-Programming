@@ -1,8 +1,3 @@
-/*
- * ServerTrd.c  –  Concurrent Stock Exchange Server
- * Aşama 2: partial read/write, JOIN protokolü, per-client state yönetimi
- */
-
 #define _POSIX_C_SOURCE 200809L
 
 #include <stdio.h>
@@ -20,20 +15,17 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-/* ─── sabitler ─────────────────────────────────────────────── */
 #define MAX_STOCKS   128
 #define MAX_CLIENTS  10
 #define MAX_LINE     512
-#define SYMBOL_LEN   9      /* 8 karakter + '\0' */
-#define BCAST_INTERVAL 5    /* saniye */
+#define SYMBOL_LEN   9   
+#define BCAST_INTERVAL 5  
 
-/* ─── veri yapıları ─────────────────────────────────────────── */
 typedef struct {
     char  symbol[SYMBOL_LEN];
     float price;
 } stock_t;
 
-/* portfolio girişi: bir trader'ın elindeki tek hisse */
 typedef struct {
     char symbol[SYMBOL_LEN];
     int  qty;
@@ -42,16 +34,14 @@ typedef struct {
 typedef struct {
     int       fd;
     char      username[32];
-    char      type[16];          /* "TRADER" veya "ANALYST" */
+    char      type[16];      
     char      line_buf[MAX_LINE];
     int       buf_len;
-    int       joined;            /* JOIN alındı mı? */
-    /* portfolio: sadece TRADER için */
+    int       joined;    
     holding_t portfolio[MAX_STOCKS];
-    int       port_count;        /* kaç farklı hisse tuttuğu */
+    int       port_count;   
 } client_t;
 
-/* ─── global değişkenler ────────────────────────────────────── */
 static stock_t   stocks[MAX_STOCKS];
 static int       stock_count = 0;
 
@@ -60,13 +50,11 @@ static int       client_count = 0;
 
 static volatile sig_atomic_t got_sigint = 0;
 
-static FILE     *logfp   = NULL;   /* -l log dosyası */
+static FILE     *logfp   = NULL;  
 
-/* UDP broadcast için global — process_line içinden erişilir */
 static int                udp_fd_g   = -1;
 static struct sockaddr_in bcast_addr_g;
 
-/* ─── yardımcı: hem stdout hem log dosyasına yaz ────────────── */
 static void server_log(const char *fmt, ...)
 {
     va_list ap;
@@ -84,19 +72,17 @@ static void server_log(const char *fmt, ...)
     fflush(stdout);
 }
 
-/* ─── signal handler ────────────────────────────────────────── */
 static void handle_sigint(int sig)
 {
     (void)sig;
     got_sigint = 1;
 }
 
-/* ─── stocks.txt okuma ──────────────────────────────────────── */
 static int load_stocks(const char *path)
 {
     FILE *fp = fopen(path, "r");
     if (!fp) {
-        fprintf(stderr, "ERROR: stocks dosyası açılamadı: %s\n", path);
+        fprintf(stderr, "ERROR: stocks could not opened: %s\n", path);
         return -1;
     }
 
@@ -105,11 +91,9 @@ static int load_stocks(const char *path)
         char sym[SYMBOL_LEN];
         float price;
 
-        /* geçersiz satırları sessizce atla */
         if (sscanf(line, "%8s %f", sym, &price) != 2) continue;
         if (price <= 0.0f) continue;
 
-        /* sembol: sadece büyük harf + rakam */
         int valid = 1;
         for (int i = 0; sym[i]; i++) {
             char c = sym[i];
@@ -130,7 +114,6 @@ static int load_stocks(const char *path)
     return stock_count;
 }
 
-/* ─── kullanım mesajı ───────────────────────────────────────── */
 static void usage(const char *prog)
 {
     fprintf(stderr,
@@ -138,20 +121,18 @@ static void usage(const char *prog)
         prog);
 }
 
-/* ─── yeni client slotu bul ─────────────────────────────────── */
 static client_t *alloc_client(void)
 {
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (clients[i].fd == -1) {
             memset(&clients[i], 0, sizeof(clients[i]));
-            clients[i].fd = -1;   /* alloc sonrası caller set edecek */
+            clients[i].fd = -1;  
             return &clients[i];
         }
     }
     return NULL;
 }
 
-/* ─── username çakışma kontrolü ────────────────────────────── */
 static int username_taken(const char *name)
 {
     for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -162,7 +143,6 @@ static int username_taken(const char *name)
     return 0;
 }
 
-/* ─── safe_send: partial write koruması ────────────────────── */
 static int safe_send(int fd, const char *msg)
 {
     size_t total = strlen(msg);
@@ -175,7 +155,6 @@ static int safe_send(int fd, const char *msg)
     return 0;
 }
 
-/* ─── client bağlantısını temiz kapat ──────────────────────── */
 static void disconnect_client(int idx, const char *reason)
 {
     if (clients[idx].fd < 0) return;
@@ -190,10 +169,8 @@ static void disconnect_client(int idx, const char *reason)
     client_count--;
 }
 
-/* forward declaration */
 static void send_price_broadcast(const char *trigger);
 
-/* ─── hisse bul ─────────────────────────────────────────────── */
 static stock_t *find_stock(const char *symbol)
 {
     for (int i = 0; i < stock_count; i++)
@@ -202,13 +179,11 @@ static stock_t *find_stock(const char *symbol)
     return NULL;
 }
 
-/* ─── tek bir komut satırını işle ───────────────────────────── */
 static int process_line(int idx, char *line)
 {
     client_t *c = &clients[idx];
     char resp[MAX_LINE + 64];
 
-    /* JOIN */
     if (strncmp(line, "JOIN ", 5) == 0) {
         if (c->joined) { safe_send(c->fd, "ERR ALREADY_JOINED\n"); return 0; }
         char type_str[16], uname[32];
@@ -231,16 +206,13 @@ static int process_line(int idx, char *line)
         return 0;
     }
 
-    /* JOIN gelmeden */
     if (!c->joined) { safe_send(c->fd, "ERR NOT_JOINED\n"); return 0; }
 
-    /* QUIT */
     if (strcmp(line, "QUIT") == 0) {
         safe_send(c->fd, "OK QUIT\n");
         return -1;
     }
 
-    /* ANALYST komutları */
     if (strcmp(c->type, "ANALYST") == 0) {
 
         if (strncmp(line, "PRICE ", 6) == 0) {
@@ -294,10 +266,8 @@ static int process_line(int idx, char *line)
         return 0;
     }
 
-    /* TRADER komutları */
     if (strcmp(c->type, "TRADER") == 0) {
 
-        /* ── BUY <symbol> <qty> ── */
         if (strncmp(line, "BUY ", 4) == 0) {
             char sym[SYMBOL_LEN];
             int  qty;
@@ -311,7 +281,6 @@ static int process_line(int idx, char *line)
             float new_price = old_price + qty * 0.01f;
             s->price = new_price;
 
-            /* portfolio güncelle: mevcut holding varsa artır, yoksa yeni ekle */
             int found = 0;
             for (int i = 0; i < c->port_count; i++) {
                 if (strcmp(c->portfolio[i].symbol, sym) == 0) {
@@ -334,7 +303,6 @@ static int process_line(int idx, char *line)
             return 0;
         }
 
-        /* ── SELL <symbol> <qty> ── */
         if (strncmp(line, "SELL ", 5) == 0) {
             char sym[SYMBOL_LEN];
             int  qty;
@@ -344,7 +312,6 @@ static int process_line(int idx, char *line)
             stock_t *s = find_stock(sym);
             if (!s) { safe_send(c->fd, "ERR UNKNOWN_SYMBOL\n"); return 0; }
 
-            /* portföyde yeterli hisse var mı? */
             int held = 0, port_idx = -1;
             for (int i = 0; i < c->port_count; i++) {
                 if (strcmp(c->portfolio[i].symbol, sym) == 0) {
@@ -362,10 +329,8 @@ static int process_line(int idx, char *line)
             if (new_price < 0.01f) new_price = 0.01f;
             s->price = new_price;
 
-            /* portfolio güncelle */
             c->portfolio[port_idx].qty -= qty;
             if (c->portfolio[port_idx].qty == 0) {
-                /* bu hisseyi listeden çıkar: son elemanla yer değiştir */
                 c->portfolio[port_idx] = c->portfolio[c->port_count - 1];
                 c->port_count--;
             }
@@ -379,7 +344,6 @@ static int process_line(int idx, char *line)
             return 0;
         }
 
-        /* ── PORTFOLIO ── */
         if (strcmp(line, "PORTFOLIO") == 0) {
             if (c->port_count == 0) {
                 safe_send(c->fd, "OK PORTFOLIO EMPTY\n");
@@ -413,7 +377,6 @@ static int process_line(int idx, char *line)
     return 0;
 }
 
-/* ─── UDP broadcast: tüm güncel fiyatları gönder ───────────── */
 static void send_price_broadcast(const char *trigger)
 {
     if (udp_fd_g < 0) return;
@@ -434,7 +397,6 @@ static void send_price_broadcast(const char *trigger)
     server_log("[SERVER] PRICE_BROADCAST trigger=%s\n", trigger);
 }
 
-/* ─── client'tan veri oku, line_buf'a biriktir ──────────────── */
 static void client_read(int idx)
 {
     client_t *c = &clients[idx];
@@ -477,7 +439,6 @@ static void client_read(int idx)
     }
 }
 
-/* ─── fd_set yeniden oluştur ────────────────────────────────── */
 static int rebuild_fdset(int tcp_fd, fd_set *rfds)
 {
     FD_ZERO(rfds);
@@ -494,13 +455,11 @@ static int rebuild_fdset(int tcp_fd, fd_set *rfds)
     return maxfd;
 }
 
-/* ─── main ──────────────────────────────────────────────────── */
 int main(int argc, char *argv[])
 {
     int   tcp_port = -1, udp_port = -1;
     char *stocks_path = NULL, *log_path = NULL;
 
-    /* argüman parse */
     for (int i = 1; i < argc; i++) {
         if      (!strcmp(argv[i], "-p") && i+1 < argc) tcp_port   = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-u") && i+1 < argc) udp_port   = atoi(argv[++i]);
@@ -514,30 +473,25 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /* log dosyasını aç */
     logfp = fopen(log_path, "w");
     if (!logfp) {
-        fprintf(stderr, "ERROR: log dosyası açılamadı: %s\n", log_path);
+        fprintf(stderr, "ERROR: log file could not opened: %s\n", log_path);
         return 1;
     }
 
-    /* stocks yükle */
     if (load_stocks(stocks_path) <= 0) {
-        fprintf(stderr, "ERROR: hiç geçerli hisse yüklenemedi.\n");
+        fprintf(stderr, "ERROR: stocks could not uploaded.\n");
         return 1;
     }
 
-    /* client dizisini sıfırla */
     for (int i = 0; i < MAX_CLIENTS; i++)
         clients[i].fd = -1;
 
-    /* SIGINT handler */
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = handle_sigint;
     sigaction(SIGINT, &sa, NULL);
 
-    /* ── TCP soketi ── */
     int tcp_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (tcp_fd < 0) { perror("socket TCP"); return 1; }
 
@@ -557,23 +511,19 @@ int main(int argc, char *argv[])
         perror("listen"); return 1;
     }
 
-    /* ── UDP soketi ── */
     int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (udp_fd < 0) { perror("socket UDP"); return 1; }
 
     int bcast = 1;
     setsockopt(udp_fd, SOL_SOCKET, SO_BROADCAST, &bcast, sizeof(bcast));
 
-    /* UDP bind – server kendi portuna bind etmeli ki ticker'dan ayrı olsun;
-       broadcast sadece gönderme, bind zorunlu değil ama iyi pratik */
     struct sockaddr_in udp_addr;
     memset(&udp_addr, 0, sizeof(udp_addr));
     udp_addr.sin_family      = AF_INET;
     udp_addr.sin_addr.s_addr = INADDR_ANY;
-    udp_addr.sin_port        = 0;   /* OS bir port seçsin, sadece gönderici */
+    udp_addr.sin_port        = 0;  
     bind(udp_fd, (struct sockaddr*)&udp_addr, sizeof(udp_addr));
 
-    /* broadcast hedef adresi (global'e de kopyala) */
     struct sockaddr_in bcast_addr;
     memset(&bcast_addr, 0, sizeof(bcast_addr));
     bcast_addr.sin_family      = AF_INET;
@@ -585,16 +535,11 @@ int main(int argc, char *argv[])
     server_log("[SERVER] SERVER_START tcp_port=%d udp_port=%d stocks=%d\n",
                tcp_port, udp_port, stock_count);
 
-    /* ── son broadcast zamanı ── */
     struct timespec last_bcast;
     clock_gettime(CLOCK_MONOTONIC, &last_bcast);
 
-    /* ════════════════════════════════════════
-       ANA SELECT() DÖNGÜSÜ
-       ════════════════════════════════════════ */
     while (!got_sigint) {
 
-        /* kalan timeout hesapla */
         struct timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
         long elapsed_ms = (now.tv_sec  - last_bcast.tv_sec)  * 1000
@@ -611,12 +556,11 @@ int main(int argc, char *argv[])
 
         int ready = select(maxfd + 1, &rfds, NULL, NULL, &tv);
         if (ready < 0) {
-            if (errno == EINTR) continue;   /* SIGINT bizi buraya düşürür */
+            if (errno == EINTR) continue; 
             perror("select");
             break;
         }
 
-        /* ── periyodik broadcast zamanı geldi mi? ── */
         clock_gettime(CLOCK_MONOTONIC, &now);
         elapsed_ms = (now.tv_sec  - last_bcast.tv_sec)  * 1000
                    + (now.tv_nsec - last_bcast.tv_nsec) / 1000000;
@@ -626,9 +570,8 @@ int main(int argc, char *argv[])
             clock_gettime(CLOCK_MONOTONIC, &last_bcast);
         }
 
-        if (ready == 0) continue;   /* sadece timeout idi */
+        if (ready == 0) continue;  
 
-        /* ── yeni TCP bağlantısı ── */
         if (FD_ISSET(tcp_fd, &rfds)) {
             struct sockaddr_in cli_addr;
             socklen_t cli_len = sizeof(cli_addr);
@@ -637,7 +580,6 @@ int main(int argc, char *argv[])
             if (cli_fd >= 0) {
                 client_t *c = alloc_client();
                 if (!c) {
-                    /* yer yok, bağlantıyı reddet */
                     close(cli_fd);
                 } else {
                     c->fd = cli_fd;
@@ -648,20 +590,15 @@ int main(int argc, char *argv[])
             }
         }
 
-        /* ── mevcut client'lardan veri ── */
         for (int i = 0; i < MAX_CLIENTS; i++) {
             if (clients[i].fd < 0) continue;
             if (!FD_ISSET(clients[i].fd, &rfds)) continue;
-            client_read(i);   /* partial read + komut parse */
+            client_read(i);
         }
     }
 
-    /* ════════════════════════════════════════
-       KAPANIŞ  (SIGINT)
-       ════════════════════════════════════════ */
     server_log("[SERVER] SHUTDOWN signal=SIGINT\n");
 
-    /* tüm TCP client'lara bildir */
     const char *shutdown_msg = "SERVER SHUTDOWN\n";
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (clients[i].fd >= 0) {
